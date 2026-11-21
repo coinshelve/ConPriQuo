@@ -26,7 +26,7 @@ npm run build      # static site in dist/
 npm run preview    # serve dist/ locally
 npm run check      # Astro and TypeScript diagnostics
 npm test           # unit tests for the configure-price-quote engine
-npm run qa         # 47 automated checks against a running preview (see tools/qa.mjs)
+npm run qa         # 51 automated checks against a running preview (see tools/qa.mjs)
 ```
 
 Node 22.23 or newer is required.
@@ -45,8 +45,9 @@ src/
     Story.astro            opening + the worked example: Configure, Price, Quote, Hand off
     Practices.astro        Oracle CPQ, Oracle CX and Salesforce on one lifecycle line
     Engagements.astro      published Oracle CPQ engagements
-    Staffing.astro         skill families and the shortlist process
     Delivery.astro         how a project runs
+    Staffing.astro         skill families and the shortlist process
+    Lattice.astro          the logo's hexagon as a still background for navy sections
     Closing.astro          the last section: discuss a project, or request specialists
     Enquiry.astro          the enquiry form, as a modal dialog
     Footer.astro
@@ -94,7 +95,7 @@ How a request is delivered is decided at build time by `PUBLIC_FORM_ENDPOINT`:
 | `PUBLIC_FORM_ENDPOINT` | What happens on submit |
 | --- | --- |
 | Set to a URL | The request is sent to that URL as a JSON `POST` with the fields `service`, `name`, `phone`, `email`, `requirement`, `page` and `subject`. The dialog reports success only when the endpoint answers with a success status; otherwise it shows the email address and phone number. |
-| Not set | There is no server to receive anything, so the request is handed to the visitor's own email app as a ready-to-send message (a `mailto:` link), and the dialog says exactly that. The details can also be copied. Nothing is transmitted or stored by the page. |
+| Not set | There is no server to receive anything, so the request is handed to the visitor's own email app as a ready-to-send message (a `mailto:` link). The page cannot know whether that app opened, so the dialog does not say the request was sent: it says a message should be open, and offers to open it again, copy the details, or call. Nothing is transmitted or stored by the page. |
 
 ```sh
 PUBLIC_FORM_ENDPOINT=https://forms.example.com/your-form npm run build

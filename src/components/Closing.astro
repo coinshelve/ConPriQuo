@@ -4,11 +4,13 @@
  * dialog. The direct lines are in the footer immediately below.
  */
 import { company } from '../data/site';
+import Lattice from './Lattice.astro';
 
 const mail = `mailto:${company.email}`;
 ---
 
 <section class="closing" id="contact" aria-labelledby="closing-title">
+  <Lattice from="right" />
   <div class="wrap closing__grid">
     <div class="closing__lede">
       <h2 class="chapter" id="closing-title">
@@ -21,7 +23,7 @@ const mail = `mailto:${company.email}`;
           class="btn btn--line"
           href={mail}
           data-enquiry
-          data-enquiry-service="Contract specialists for Oracle CPQ, Oracle CX or Salesforce"
+          data-enquiry-service="Contract specialists: Oracle CPQ, Oracle CX or Salesforce"
         >
           Request specialists
         </a>
@@ -31,9 +33,17 @@ const mail = `mailto:${company.email}`;
 </section>
 
 <style>
+  /* One step darker than the staffing section before it, so the two navy sections
+     read as two. */
   .closing {
-    background: var(--ground);
+    position: relative;
+    overflow: clip;
+    background: var(--ground-2);
     padding-block: var(--section);
+  }
+
+  .closing__grid {
+    position: relative;
   }
 
 

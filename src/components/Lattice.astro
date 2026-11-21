@@ -1,0 +1,97 @@
+---
+/**
+ * The logo's hexagon, tiled and seen from the angle of the 3D stage's opening view,
+ * as a still background for navy sections that have no stage of their own. It is
+ * drawn once at build time: lines only, no fill, no glow and no motion, fading out
+ * from the corner it grows from.
+ */
+interface Props {
+  /** The side or corner of the section the lattice grows from. */
+  from?: 'right' | 'top-right';
+}
+
+const { from = 'right' } = Astro.props;
+
+const WIDTH = 1600;
+const HEIGHT = 1000;
+/** Radius of one hexagon in drawing units, before it is tilted into view. */
+const CELL = 205;
+// The stage's opening camera: 40 degrees round, 29 degrees up (see POSES in stage.ts).
+const AZIMUTH = (40 * Math.PI) / 180;
+const ELEVATION = (29 * Math.PI) / 180;
+const ORIGIN = { x: WIDTH * 0.62, y: HEIGHT * 0.5 };
+
+/** A point on the ground plane, as the stage's orthographic camera would draw it. */
+const project = (x: number, z: number) => ({
+  x: ORIGIN.x + x * Math.cos(AZIMUTH) - z * Math.sin(AZIMUTH),
+  y: ORIGIN.y + (x * Math.sin(AZIMUTH) + z * Math.cos(AZIMUTH)) * Math.sin(ELEVATION),
+});
+
+const inside = (p: { x: number; y: number }) => p.x > -40 && p.x < WIDTH + 40 && p.y > -40 && p.y < HEIGHT + 40;
+const segments: string[] = [];
+const reach = 9;
+for (let i = -reach; i <= reach; i++) {
+  for (let j = -reach; j <= reach; j++) {
+    const cx = 1.5 * CELL * i;
+    const cz = Math.sqrt(3) * CELL * (j + (Math.abs(i) % 2 ? 0.5 : 0));
+    // three edges per cell are enough: the neighbours draw the other three
+    for (let k = 0; k < 3; k++) {
+      const a = (Math.PI / 3) * k;
+      const b = (Math.PI / 3) * (k + 1);
+      const p = project(cx + CELL * Math.cos(a), cz + CELL * Math.sin(a));
+      const q = project(cx + CELL * Math.cos(b), cz + CELL * Math.sin(b));
+      if (!inside(p) && !inside(q)) continue;
+      segments.push(`M${p.x.toFixed(1)} ${p.y.toFixed(1)}L${q.x.toFixed(1)} ${q.y.toFixed(1)}`);
+    }
+  }
+}
+---
+
+<svg
+  class="lattice"
+  data-from={from}
+  viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+  preserveAspectRatio="xMaxYMid slice"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d={segments.join('')}></path>
+</svg>
+
+<style>
+  .lattice {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    fill: none;
+    stroke: var(--lattice);
+    stroke-width: 1;
+    opacity: 0.85;
+    -webkit-mask-image: radial-gradient(ellipse 66% 120% at 100% 50%, #000 0%, #000 22%, transparent 74%);
+    mask-image: radial-gradient(ellipse 66% 120% at 100% 50%, #000 0%, #000 22%, transparent 74%);
+  }
+
+  .lattice[data-from='top-right'] {
+    -webkit-mask-image: radial-gradient(ellipse 58% 92% at 100% 0%, #000 0%, #000 18%, transparent 72%);
+    mask-image: radial-gradient(ellipse 58% 92% at 100% 0%, #000 0%, #000 18%, transparent 72%);
+  }
+
+  .lattice path {
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* On a narrow screen the lattice would run behind the text, so it steps back. */
+  @media (max-width: 47.99rem) {
+    .lattice {
+      opacity: 0.5;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .lattice {
+      display: none;
+    }
+  }
+</style>

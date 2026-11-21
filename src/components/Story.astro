@@ -26,7 +26,29 @@ const mail = `mailto:${company.email}`;
 ---
 
 <div class="story wrap" id="top" data-story>
-  <div class="story__stage" aria-hidden="true">
+  <!-- ================= Opening ================= -->
+  <section class="hero" aria-labelledby="hero-title">
+    <h1 class="hero__title" id="hero-title">
+      <span class="hero__services">
+        <span data-dot="cpq">Oracle CPQ<span class="visually-hidden">, </span></span>
+        <span data-dot="cx">Oracle CX<span class="visually-hidden">, </span></span>
+        <span data-dot="sf">Salesforce<span class="visually-hidden">, </span></span>
+        <span data-dot="staff">IT Staffing<span class="visually-hidden">. </span></span>
+      </span>
+      <span class="hero__line">Get the quote right.</span>
+      <span class="hero__line hero__line--2">Get the right people.</span>
+    </h1>
+    <p class="lead hero__lead">
+      We build Oracle CPQ, Oracle CX and Salesforce systems for companies that sell complex products, and place
+      the specialists your team is missing.
+    </p>
+    <div class="hero__cta">
+      <a class="btn btn--accent" href={mail} data-enquiry>Tell us what you need</a>
+      <a class="btn btn--line" href="#configure">Build a quote live</a>
+    </div>
+  </section>
+
+  <div class="story__stage" aria-hidden="true" data-nosnippet>
     <div class="stage" data-stage="unit">
       <div class="stage__slot" data-stage-slot>
         <noscript><img class="stage-poster" src={unitPoster.src} alt="" width={unitPoster.width} height={unitPoster.height} /></noscript>
@@ -37,32 +59,10 @@ const mail = `mailto:${company.email}`;
   </div>
 
   <div class="story__text">
-    <!-- ================= Opening ================= -->
-    <section class="hero" aria-labelledby="hero-title">
-      <h1 class="hero__title" id="hero-title">
-        <span class="hero__services">
-          <span data-dot="cpq">Oracle CPQ<span class="visually-hidden">, </span></span>
-          <span data-dot="cx">Oracle CX<span class="visually-hidden">, </span></span>
-          <span data-dot="sf">Salesforce<span class="visually-hidden">, </span></span>
-          <span data-dot="staff">IT Staffing<span class="visually-hidden">. </span></span>
-        </span>
-        <span class="hero__line">Get the quote right.</span>
-        <span class="hero__line hero__line--2">Get the right people.</span>
-      </h1>
-      <p class="lead hero__lead">
-        We build Oracle CPQ, Oracle CX and Salesforce systems for companies that sell complex products, and place
-        the specialists who run them.
-      </p>
-      <div class="hero__cta">
-        <a class="btn btn--accent" href={mail} data-enquiry>Discuss your requirement</a>
-        <a class="btn btn--line" href="#configure">Build a quote live</a>
-      </div>
-    </section>
-
     <!-- ================= Configure ================= -->
     <section class="step" id="configure" data-step="configure" aria-labelledby="configure-title">
       <h2 class="chapter" id="configure-title">
-        <span class="tag"><span aria-hidden="true"><b>Con</b>figure</span><span class="visually-hidden">Configure: </span></span>
+        <span class="tag"><span><b>Con</b>figure<span class="visually-hidden">: </span></span></span>
         <span class="h2" data-lines>If it can’t be built, it can’t be quoted.</span>
       </h2>
       <p class="body" data-reveal>
@@ -179,7 +179,7 @@ return 1;`}</code></pre>
       </figure>
       </div>
 
-      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ enhancements or support" data-enquiry-note="Our product model needs work: configuration rules, bills of materials or guided selling.">
+      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ implementation" data-enquiry-note="We want our products modeled in Oracle CPQ: configuration rules, bills of materials and guided selling.">
         Model your products like this
       </a>
     </section>
@@ -187,11 +187,13 @@ return 1;`}</code></pre>
     <!-- ================= Price ================= -->
     <section class="step" id="price" data-step="price" aria-labelledby="price-title">
       <h2 class="chapter" id="price-title">
-        <span class="tag"><span aria-hidden="true"><b>Pri</b>ce</span><span class="visually-hidden">Price: </span></span>
+        <span class="tag"><span><b>Pri</b>ce<span class="visually-hidden">: </span></span></span>
         <span class="h2" data-lines>Every discount has an owner.</span>
       </h2>
       <p class="body" data-reveal>
-        List price, volume tier, negotiated discount. We write the logic in BML and BMQL, and the seller sees who
+        List price, volume tier, negotiated discount. We write the logic in
+        <abbr title="BigMachines Extensible Language">BML</abbr> and
+        <abbr title="BigMachines Query Language">BMQL</abbr>, and the seller sees who
         must approve before the quote leaves the desk.
       </p>
 
@@ -338,7 +340,7 @@ return 1;`}</code></pre>
     <!-- ================= Quote ================= -->
     <section class="step" id="quote" data-step="quote" aria-labelledby="quote-title">
       <h2 class="chapter" id="quote-title">
-        <span class="tag"><span aria-hidden="true"><b>Quo</b>te</span><span class="visually-hidden">Quote: </span></span>
+        <span class="tag"><span><b>Quo</b>te<span class="visually-hidden">: </span></span></span>
         <span class="h2" data-lines>Nothing on this quote was typed by hand.</span>
       </h2>
       <p class="body" data-reveal>
@@ -479,7 +481,7 @@ return 1;`}</code></pre>
      Layout: scrolling text column, sticky stage
      ------------------------------------------------------------------ */
   .story {
-    --stage-h: clamp(13.5rem, 38svh, 21rem);
+    --stage-h: clamp(13.5rem, 38svh, 28rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
@@ -543,12 +545,12 @@ return 1;`}</code></pre>
       position: relative;
       z-index: 2;
       grid-column: 1;
-      grid-row: 1;
+      grid-row: 2;
     }
 
     .story__stage {
       grid-column: 2;
-      grid-row: 1;
+      grid-row: 1 / span 2;
       align-self: start;
       height: calc(100svh - var(--header-h));
       margin-inline: 0 calc(var(--gutter) * -1);
@@ -566,6 +568,8 @@ return 1;`}</code></pre>
   /* ------------------------------------------------------------------
      Opening. Four services, one tagline, one sentence, two actions.
      The tagline is sized to its column so each sentence holds one line.
+     In the markup the opening comes before the stage: on a stacked layout a
+     visitor reads the tagline first and meets the model under it.
      ------------------------------------------------------------------ */
   .hero {
     container-type: inline-size;
@@ -625,7 +629,7 @@ return 1;`}</code></pre>
 
   .hero__line {
     display: block;
-    font-size: clamp(1.7rem, 9.1cqi, 5.6rem);
+    font-size: clamp(1.7rem, 9.6cqi, 5.6rem);
     font-weight: 660;
     font-stretch: 112%;
     line-height: 1;
@@ -641,6 +645,7 @@ return 1;`}</code></pre>
 
   .hero__lead {
     max-width: 31em;
+    text-wrap: balance;
     margin-top: clamp(1.5rem, 3.6vh, 2.4rem);
   }
 
@@ -653,6 +658,10 @@ return 1;`}</code></pre>
 
   @media (min-width: 64rem) {
     .hero {
+      position: relative;
+      z-index: 2;
+      grid-column: 1;
+      grid-row: 1;
       min-height: calc(100svh - var(--header-h));
     }
 
@@ -1488,6 +1497,10 @@ return 1;`}</code></pre>
     text-align: right;
     padding-right: 0;
     white-space: nowrap;
+  }
+
+  .doc__lines .num:not(:last-child) {
+    padding-right: 1.4rem;
   }
 
   .doc__lines td.mono {

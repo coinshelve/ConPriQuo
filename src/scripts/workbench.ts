@@ -159,11 +159,22 @@ export function initWorkbench(): Workbench {
       if (wanted.has(key) && !kept.has(key)) kept.add(key);
       else li.remove();
     });
-    for (const rule of shown) {
-      if (kept.has(ruleKey(rule))) continue;
-      const item = ruleItem(rule);
+    // Each new item goes in front of the next rule that is already listed, so the
+    // list follows the engine's order whatever route led to this configuration. Rules
+    // that were already listed are not moved, so they are not announced again.
+    const listed = new Map<string, HTMLElement>();
+    rulesList.querySelectorAll<HTMLElement>('li[data-kind]').forEach((li) => listed.set(li.dataset.key ?? '', li));
+    let before: ChildNode | null = rulesEmpty;
+    for (let i = shown.length - 1; i >= 0; i--) {
+      const existing = listed.get(ruleKey(shown[i]));
+      if (existing) {
+        before = existing;
+        continue;
+      }
+      const item = ruleItem(shown[i]);
       item.classList.add('is-new');
-      rulesList.insertBefore(item, rulesEmpty);
+      rulesList.insertBefore(item, before);
+      before = item;
     }
   }
 

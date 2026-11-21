@@ -239,10 +239,21 @@ try {
     await wait(900);
     status = await out('approvalStatus');
     record('20% discount adds the finance director', /sales manager/.test(status) && /finance director/.test(status), status);
-    const totals = await page.evaluate(() => {
-      const n = (k) => Number(document.querySelector(`[data-out="${k}"]`).textContent.replace(/[^0-9]/g, ''));
-      return { total: n('total'), total2: n('total2'), mapTotal: n('mapTotal'), unitNet: n('unitNet'), qty: n('quantity'), stamp: document.querySelector('[data-stamp]').dataset.state };
-    });
+    // The figures tick towards their new values, and on a loaded machine that can
+    // outlast a fixed pause: read them only once two readings in a row agree.
+    const readTotals = () =>
+      page.evaluate(() => {
+        const n = (k) => Number(document.querySelector(`[data-out="${k}"]`).textContent.replace(/[^0-9]/g, ''));
+        return { total: n('total'), total2: n('total2'), mapTotal: n('mapTotal'), unitNet: n('unitNet'), qty: n('quantity'), stamp: document.querySelector('[data-stamp]').dataset.state };
+      });
+    let totals = await readTotals();
+    for (let i = 0; i < 20; i++) {
+      await wait(300);
+      const next = await readTotals();
+      const settled = JSON.stringify(next) === JSON.stringify(totals);
+      totals = next;
+      if (settled) break;
+    }
     record(
       'total agrees across price build, quote document and field map',
       totals.total > 0 && totals.total === totals.total2 && totals.total === totals.mapTotal && totals.total === totals.unitNet * totals.qty,
@@ -269,6 +280,11 @@ try {
         });
       });
     const HEADER_CONTROL = 'header [data-enquiry]';
+    /** Resolves once the dialog has closed and the page has been released, or after 5 s. */
+    const untilClosed = () =>
+      page
+        .waitForFunction(() => !document.querySelector('[data-enquiry-dialog]').open && !document.documentElement.classList.contains('has-dialog'), { timeout: 5000 })
+        .catch(() => {});
     const dialogState = () =>
       page.evaluate((headerControl) => {
         const dialog = document.querySelector('[data-enquiry-dialog]');
@@ -449,7 +465,8 @@ try {
 
     // h. Escape
     await page.keyboard.press('Escape');
-    await wait(400);
+    await untilClosed();
+    await wait(200);
     dlg = await dialogState();
     record(
       'enquiry: Escape closes the dialog and returns focus to the control that opened it',
@@ -495,13 +512,102 @@ try {
       return { x, y, outside: x < box.left - 4 || x > box.right + 4 };
     });
     if (backdrop.outside) await page.mouse.click(backdrop.x, backdrop.y);
-    await wait(400);
+    await untilClosed();
+    await wait(200);
     dlg = await dialogState();
     record(
       'enquiry: a click on the backdrop closes the dialog',
       backdrop.outside && !dlg.open && !dlg.hasDialog,
       backdrop.outside ? `clicked at ${Math.round(backdrop.x)}, ${Math.round(backdrop.y)}; open ${dlg.open}, has-dialog ${dlg.hasDialog}` : 'no backdrop to click at this width',
     );
+
+    // Regression checks on a fresh page, for defects found in review.
+    {
+      await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+      await page.evaluate(() => document.fonts.ready);
+      await steadyScroll();
+      await guardHandoff();
+      await wait(800);
+
+      // The rules are listed in the engine's order whatever route led to the
+      // configuration: vacuum lifter first (B-07), then long reach (C-01, R-04).
+      await pick('tool', 'vacuum');
+      await pick('reach', 'long');
+      const order = await page.evaluate(() => Array.from(document.querySelectorAll('[data-rules] li[data-kind]')).map((li) => li.firstElementChild.textContent));
+      record('rule log follows the engine order, not the order of clicks', order.join(' ') === 'C-01 R-04 B-07', order.join(' '));
+
+      // The chapter rail keeps its navy theme while the white quotation card passes.
+      await page.evaluate(() => {
+        const box = document.querySelector('#quote .doc').getBoundingClientRect();
+        window.scrollTo(0, window.scrollY + box.top + box.height / 2 - window.innerHeight * 0.42);
+      });
+      await wait(600);
+      const rail = await page.evaluate(() => {
+        const el = document.querySelector('[data-rail]');
+        return { shown: getComputedStyle(el).display !== 'none', light: el.classList.contains('theme-light') };
+      });
+      record('rail keeps its navy theme beside the quotation card', rail.shown && !rail.light, JSON.stringify(rail));
+
+      // Each opening starts from its own call to action: a service or note the
+      // visitor never touched does not travel with the next request.
+      const openFrom = async (selector) => {
+        await page.evaluate((sel) => {
+          const el = document.querySelector(sel);
+          el.scrollIntoView({ block: 'center' });
+          el.click();
+        }, selector);
+        await settleDialog(page);
+        return page.evaluate(() => ({ service: document.getElementById('enq-service').value, requirement: document.getElementById('enq-requirement').value }));
+      };
+      const pressEscape = async () => {
+        await page.keyboard.press('Escape');
+        await untilClosed();
+        await wait(150);
+      };
+      const QUOTE_CTA = '#quote [data-enquiry][data-enquiry-note]';
+      const STAFF_CTA = '[data-family-cta]';
+      const want = await page.evaluate(
+        (a, b) => ({
+          quoteService: document.querySelector(a).dataset.enquiryService ?? '',
+          quoteNote: document.querySelector(a).dataset.enquiryNote ?? '',
+          staffService: document.querySelector(b).dataset.enquiryService ?? '',
+          staffNote: document.querySelector(b).dataset.enquiryNote ?? '',
+        }),
+        QUOTE_CTA,
+        STAFF_CTA,
+      );
+      const first = await openFrom(QUOTE_CTA);
+      await pressEscape();
+      const second = await openFrom(STAFF_CTA);
+      await pressEscape();
+      const third = await openFrom(HEADER_CONTROL);
+      record(
+        'enquiry: each opening starts from its own call to action',
+        want.quoteNote.length > 0 &&
+          want.staffNote.length > 0 &&
+          first.service === want.quoteService &&
+          first.requirement === want.quoteNote &&
+          second.service === want.staffService &&
+          second.requirement === want.staffNote &&
+          third.service === '' &&
+          third.requirement === '',
+        `quote link: "${first.service}" / "${first.requirement}"; staffing button: "${second.service}" / "${second.requirement}"; header: "${third.service}" / "${third.requirement}"`,
+      );
+
+      // Errors from an abandoned attempt are gone the next time the dialog opens.
+      await submit();
+      const flaggedBefore = names(await fieldState(), flagged);
+      await pressEscape();
+      await openFrom(INTENT);
+      const fieldsAfter = await fieldState();
+      const statusAfter = (await dialogState()).status;
+      record(
+        'enquiry: errors from an earlier attempt are gone when it reopens',
+        flaggedBefore.length === 4 && names(fieldsAfter, (f) => f.invalid).length === 0 && statusAfter === '',
+        `flagged before closing: ${flaggedBefore.join(' ')}; still flagged after reopening: ${names(fieldsAfter, (f) => f.invalid).join(' ') || 'none'}; status "${statusAfter}"`,
+      );
+      await pressEscape();
+    }
 
     // k. on a phone the dialog is the whole screen
     {
@@ -582,11 +688,12 @@ try {
           const extra = document.documentElement.scrollWidth - document.documentElement.clientWidth;
           if (extra > worst.extra) worst.extra = extra;
         }
-        // find any element poking past the right edge
+        // find any element poking past the right edge (the background lattice is an SVG
+        // that is cropped by its own box, so its path is not counted)
         const vw = document.documentElement.clientWidth;
         for (const el of document.querySelectorAll('main *, header *, footer *')) {
           const r = el.getBoundingClientRect();
-          if (r.width && r.right > vw + 1 && getComputedStyle(el).position !== 'fixed' && !el.closest('.stage, .site-menu, pre')) {
+          if (r.width && r.right > vw + 1 && getComputedStyle(el).position !== 'fixed' && !el.closest('.stage, .site-menu, pre, .lattice')) {
             worst.who = `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} right=${Math.round(r.right)}`;
             break;
           }

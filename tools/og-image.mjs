@@ -98,7 +98,7 @@ const html = `<!doctype html>
       <span style="--dot:#f3f5fb">IT Staffing</span>
     </p>
     <h1>Get the quote right.<span>Get the right people.</span></h1>
-    <p class="lead">Oracle CPQ, Oracle CX and Salesforce consulting, and the specialists who run them.</p>
+    <p class="lead">Oracle CPQ, Oracle CX and Salesforce consulting, and the specialists your team is missing.</p>
   </div>
 </body>
 </html>`;

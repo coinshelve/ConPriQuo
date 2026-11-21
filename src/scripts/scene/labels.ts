@@ -58,8 +58,8 @@ export class LabelLayer {
   private taken: number[] = [];
 
   /**
-   * @param footer Height in pixels at the bottom of a compact stage that labels stay
-   *   out of, for the caption the page prints there.
+   * @param footer Height in pixels at the bottom of the stage that labels stay out
+   *   of, for the caption the page prints there.
    */
   constructor(
     private container: HTMLElement,
@@ -143,8 +143,10 @@ export class LabelLayer {
     let alignRight = dx < 0;
 
     // keep the whole label inside the stage
-    const edge = compact ? EDGE_COMPACT : EDGE;
-    const floor = height - edge - (compact ? this.footer : 0);
+    // A stage narrower than a desktop column is a stacked one: it runs to the edges
+    // of the screen, so labels keep the wider margin there.
+    const edge = width < 900 ? EDGE_COMPACT : EDGE;
+    const floor = height - edge - this.footer;
     const maxLeft = width - edge - label.width;
     const wanted = this.screen.x + dx - (alignRight ? label.width : 0);
     let left = Math.max(edge, Math.min(maxLeft, wanted));

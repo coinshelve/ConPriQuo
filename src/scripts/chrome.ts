@@ -59,7 +59,9 @@ function initRail() {
   const ids = Array.from(new Set(links.map((link) => link.hash.slice(1))));
   const targets = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => Boolean(el));
   if (!targets.length) return;
-  const lightSections = Array.from(document.querySelectorAll<HTMLElement>('main .theme-light, footer .theme-light'));
+  // Only whole sections count: a light card inside a navy chapter (the quotation)
+  // does not put the rail on a light ground.
+  const lightSections = Array.from(document.querySelectorAll<HTMLElement>('main > .theme-light, footer .theme-light'));
 
   let current = '';
   const update = () => {

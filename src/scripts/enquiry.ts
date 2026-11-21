@@ -6,8 +6,9 @@
  *   set     The request is posted as JSON to that URL (a form service or your own
  *           API). The dialog reports success only when the endpoint confirms it.
  *   unset   There is no server to receive anything, so the request is handed to the
- *           visitor's own email app as a ready-to-send message, and the dialog says
- *           exactly that. Nothing is transmitted or stored by the page.
+ *           visitor's own email app as a ready-to-send message. The page cannot know
+ *           whether that app opened, so the dialog never says the request was sent:
+ *           it says what should have happened and offers the other ways to reach us.
  */
 import { company } from '../data/site';
 
@@ -15,8 +16,11 @@ const ENDPOINT = String(import.meta.env.PUBLIC_FORM_ENDPOINT ?? '').trim();
 
 /** Some mail handlers cut off very long links, so the composed link is kept under this. */
 const MAILTO_LIMIT = 1900;
+/** A request to the form endpoint that has not answered by now is treated as failed. */
+const SEND_TIMEOUT = 15000;
 
 type FieldName = 'service' | 'name' | 'phone' | 'email';
+const FIELDS: FieldName[] = ['service', 'name', 'phone', 'email'];
 
 interface Enquiry {
   service: string;
@@ -26,7 +30,10 @@ interface Enquiry {
   requirement: string;
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** Every label of the domain starts and ends with a letter or digit; the last is letters. */
+const EMAIL = /^[^\s@]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/;
+/** An extension written after the number: "ext 204", "x12". */
+const EXTENSION = /\s*(?:ext\.?|extn\.?|x)\s*\d{1,6}\s*$/i;
 
 function read(form: HTMLFormElement): Enquiry {
   const value = (name: string) =>
@@ -44,11 +51,14 @@ function check(values: Enquiry): Partial<Record<FieldName, string>> {
   const errors: Partial<Record<FieldName, string>> = {};
   if (!values.service) errors.service = 'Choose what you need help with.';
   if (values.name.length < 2) errors.name = 'Enter your name.';
-  const digits = values.phone.replace(/\D/g, '');
-  if (digits.length < 7 || digits.length > 15 || /[^\d+()\-.\s]/.test(values.phone)) {
-    errors.phone = 'Enter a phone number we can reach you on.';
+  // The number itself needs 7 to 15 digits; spaces, brackets, dashes, dots, slashes
+  // and a trailing extension are all ways people really write one.
+  const number = values.phone.replace(EXTENSION, '');
+  const digits = number.replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15 || /[^\d+()\-./\s]/.test(number)) {
+    errors.phone = 'Enter a phone number with 7 to 15 digits.';
   }
-  if (!EMAIL.test(values.email)) errors.email = 'Enter your business email address.';
+  if (!EMAIL.test(values.email) || values.email.includes('..')) errors.email = 'Enter your business email address.';
   return errors;
 }
 
@@ -67,18 +77,20 @@ function asLines(values: Enquiry, requirement = values.requirement): string[] {
 /**
  * The ready-to-send message as a mailto link. Lines are separated by CRLF, as mail
  * expects. A very long requirement is shortened to keep the link within what mail
- * handlers accept; `shortened` tells the dialog to say so.
+ * handlers accept; `shortened` tells the dialog to say so. Text is cut between whole
+ * characters, never inside one, so an emoji at the cut cannot break the link.
  */
 function composeMailto(values: Enquiry): { href: string; shortened: boolean } {
-  const subject = encodeURIComponent(`Website enquiry: ${values.service}`);
+  const subject = encodeURIComponent(`Website inquiry: ${values.service}`);
   const build = (requirement: string) =>
     `mailto:${company.email}?subject=${subject}&body=${encodeURIComponent(asLines(values, requirement).join('\r\n'))}`;
   let href = build(values.requirement);
   if (href.length <= MAILTO_LIMIT) return { href, shortened: false };
-  let requirement = values.requirement;
-  while (href.length > MAILTO_LIMIT && requirement.length > 0) {
-    requirement = requirement.slice(0, Math.max(0, requirement.length - 40));
-    href = build(`${requirement.trimEnd()} [shortened here]`);
+  const characters = Array.from(values.requirement);
+  let keep = characters.length;
+  while (href.length > MAILTO_LIMIT && keep > 0) {
+    keep = Math.max(0, keep - 40);
+    href = build(`${characters.slice(0, keep).join('').trimEnd()} [shortened here]`);
   }
   return { href, shortened: true };
 }
@@ -102,11 +114,17 @@ export function initEnquiry() {
   const trap = form.elements.namedItem('website') as HTMLInputElement | null;
   let trigger: HTMLElement | null = null;
   let last: Enquiry | null = null;
+  let sending = false;
+  // What the last opening filled in by itself. Anything the visitor has not changed
+  // since is replaced on the next opening, so one call to action's service or note
+  // never travels with a request started from another.
+  let autoService = '';
+  let autoNote = '';
 
-  const submitLabel = ENDPOINT ? 'Send request' : 'Continue in email app';
+  const submitLabel = ENDPOINT ? 'Send request' : 'Continue in your email app';
   submit.textContent = submitLabel;
   note.textContent = ENDPOINT
-    ? 'We use these details only to reply to your enquiry.'
+    ? 'We use these details only to reply to your request.'
     : 'Opens a ready-to-send message in your own email app. This page stores nothing.';
 
   const setError = (name: FieldName, message: string) => {
@@ -128,7 +146,6 @@ export function initEnquiry() {
   const showForm = () => {
     form.hidden = false;
     done.hidden = true;
-    status.textContent = '';
     copyStatus.textContent = '';
   };
 
@@ -145,19 +162,42 @@ export function initEnquiry() {
   };
 
   const open = (from: HTMLElement | null) => {
+    if (sending) return;
     trigger = from;
-    showForm();
-    const wanted = from?.dataset.enquiryService;
-    if (wanted && Array.from(service.options).some((option) => option.value === wanted)) service.value = wanted;
-    const suggestion = from?.dataset.enquiryNote;
-    if (suggestion && !requirement.value.trim()) requirement.value = suggestion;
+    // A panel left over from the last request, and any errors from an earlier
+    // attempt, do not belong to this opening.
+    if (!done.hidden) showForm();
+    for (const name of FIELDS) setError(name, '');
+    status.textContent = '';
+
+    const wanted = from?.dataset.enquiryService ?? '';
+    if (wanted && Array.from(service.options).some((option) => option.value === wanted)) {
+      service.value = wanted;
+      autoService = wanted;
+    } else if (service.value === autoService) {
+      // Chosen by an earlier call to action, not by the visitor: start clean.
+      service.value = '';
+      autoService = '';
+    }
+    const suggestion = from?.dataset.enquiryNote ?? '';
+    if (!requirement.value.trim() || requirement.value === autoNote) {
+      requirement.value = suggestion;
+      autoNote = suggestion;
+    }
+
     document.documentElement.classList.add('has-dialog');
-    dialog.showModal();
+    if (!dialog.open) dialog.showModal();
     const first = service.value ? (form.elements.namedItem('name') as HTMLElement) : service;
     first.focus();
   };
 
-  const close = () => dialog.close();
+  // While a request is on its way the dialog stays open, so its outcome is seen.
+  const close = () => {
+    if (!sending) dialog.close();
+  };
+  dialog.addEventListener('cancel', (event) => {
+    if (sending) event.preventDefault();
+  });
 
   dialog.addEventListener('close', () => {
     document.documentElement.classList.remove('has-dialog');
@@ -189,11 +229,11 @@ export function initEnquiry() {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (sending) return;
     const values = read(form);
     const errors = check(values);
-    const names: FieldName[] = ['service', 'name', 'phone', 'email'];
-    for (const name of names) setError(name, errors[name] ?? '');
-    const firstInvalid = names.find((name) => errors[name]);
+    for (const name of FIELDS) setError(name, errors[name] ?? '');
+    const firstInvalid = FIELDS.find((name) => errors[name]);
     if (firstInvalid) {
       status.textContent = 'Please check the highlighted fields.';
       (form.elements.namedItem(firstInvalid) as HTMLElement).focus();
@@ -202,6 +242,7 @@ export function initEnquiry() {
     status.textContent = '';
     last = values;
     const firstName = values.name.split(/\s+/)[0];
+    const otherWays = `Please email ${company.email} or call ${company.phoneDisplay}.`;
 
     if (ENDPOINT) {
       // A filled trap field means an automated form filler: nothing is sent.
@@ -210,35 +251,51 @@ export function initEnquiry() {
         showDone('Request sent.', `Thank you, ${firstName}. We have your details and will reply by email or phone.`);
         return;
       }
+      sending = true;
       submit.disabled = true;
       submit.textContent = 'Sending';
+      const abort = new AbortController();
+      const timer = window.setTimeout(() => abort.abort(), SEND_TIMEOUT);
       try {
         const response = await fetch(ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ ...values, page: window.location.href, subject: `Website enquiry: ${values.service}` }),
+          body: JSON.stringify({ ...values, page: window.location.href, subject: `Website inquiry: ${values.service}` }),
+          signal: abort.signal,
         });
         if (!response.ok) throw new Error(`Form endpoint answered ${response.status}`);
         form.reset();
+        autoService = '';
+        autoNote = '';
         showDone('Request sent.', `Thank you, ${firstName}. We have your details and will reply by email or phone.`);
       } catch (error) {
         console.warn('Enquiry could not be delivered.', error);
-        status.textContent = `This could not be sent just now. Please email ${company.email} or call ${company.phoneDisplay}.`;
+        status.textContent = `This could not be sent right now. ${otherWays}`;
       } finally {
+        window.clearTimeout(timer);
+        sending = false;
         submit.disabled = false;
         submit.textContent = submitLabel;
       }
       return;
     }
 
-    const { href, shortened } = composeMailto(values);
-    window.location.href = href;
+    let handoff: { href: string; shortened: boolean };
+    try {
+      handoff = composeMailto(values);
+    } catch (error) {
+      console.warn('The email could not be prepared.', error);
+      status.textContent = `The email could not be prepared from this text. ${otherWays}`;
+      return;
+    }
+    window.location.href = handoff.href;
+    // The page cannot tell whether an email app opened, so it does not claim one did.
     showDone(
-      'Your email app has the request.',
-      shortened
-        ? `Press send there and it reaches ${company.email}. Your requirement was long, so the email holds only the first part: copy the details and paste the rest.`
-        : `Press send there and it reaches ${company.email}. If nothing opened, open the email again, or copy the details and send them to us.`,
-      href,
+      'One step left: send the email.',
+      handoff.shortened
+        ? `A ready-to-send message should now be open in your email app. Your requirement was long, so the email holds only the first part. Copy the details and paste the rest before you send it to ${company.email}.`
+        : `A ready-to-send message should now be open in your email app. Press send and it reaches ${company.email}. If nothing opened, open the email again, copy the details, or call ${company.phoneDisplay}.`,
+      handoff.href,
     );
   });
 
@@ -248,7 +305,7 @@ export function initEnquiry() {
       await navigator.clipboard.writeText(text);
       copyStatus.textContent = 'Copied.';
     } catch {
-      copyStatus.textContent = `Copying was blocked by the browser. Please email ${company.email}.`;
+      copyStatus.textContent = `Copying was blocked by the browser. Please email ${company.email} or call ${company.phoneDisplay}.`;
     }
   });
 }

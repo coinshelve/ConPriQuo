@@ -301,6 +301,7 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
   type World = 'unit' | 'team';
   let world: World = 'unit';
   const setWorld = (next: World) => {
+    if (stopped) return;
     world = next;
     if (next === 'team') buildTeam();
     unitWorld.visible = next === 'unit';
@@ -406,8 +407,10 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
   window.addEventListener('scroll', onScroll, { passive: true });
   // A resized stage may need a different camera, and the chapters sit elsewhere.
   rig.onResize(() => applyScroll(true));
+  let sceneObserver: IntersectionObserver | null = null;
   rig.onLost(() => {
     stopped = true;
+    sceneObserver?.disconnect();
     inputs.abort();
     window.removeEventListener('scroll', onScroll);
     unitLabels?.hideAll();
@@ -434,6 +437,7 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
     const near = new Set<World>();
     const observer = new IntersectionObserver(
       (entries) => {
+        if (stopped) return;
         for (const entry of entries) {
           const which = stageHosts.get(entry.target)!;
           if (entry.isIntersecting) near.add(which);
@@ -446,6 +450,7 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
     );
     observer.observe(unitSlot);
     observer.observe(teamSlot);
+    sceneObserver = observer;
   }
 
   // ------------------------------------------------------------------ per frame

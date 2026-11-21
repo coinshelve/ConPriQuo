@@ -10,10 +10,9 @@ const year = new Date().getFullYear();
   <!-- The name, once more, on navy: the three words it is made of. -->
   <div class="footer__name-band">
     <p class="footer__name wrap">
-      <span class="visually-hidden">Configure. Price. Quote.</span>
-      <span aria-hidden="true"><b>Con</b>figure.</span>
-      <span aria-hidden="true"><b>Pri</b>ce.</span>
-      <span aria-hidden="true"><b>Quo</b>te.</span>
+      <span><b>Con</b>figure.</span>
+      <span><b>Pri</b>ce.</span>
+      <span><b>Quo</b>te.</span>
     </p>
   </div>
 
@@ -33,7 +32,7 @@ const year = new Date().getFullYear();
 
         <!-- Planned pages. Text only until those pages exist, and labelled as such. -->
         <div class="footer__pages" role="group" aria-labelledby="footer-pages-label">
-          <p class="footer__soon" id="footer-pages-label">Pages in preparation</p>
+          <p class="footer__soon" id="footer-pages-label">More pages soon</p>
           {
             plannedPages.footer.map((group) => (
               <div class="footer__group">
@@ -76,7 +75,7 @@ const year = new Date().getFullYear();
 
 <style>
   .footer__name-band {
-    background: var(--ground-2);
+    background: var(--ground);
     padding-block: clamp(3.5rem, 8vw, 7rem) clamp(2.5rem, 5vw, 4.5rem);
   }
 

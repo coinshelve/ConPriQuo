@@ -21,10 +21,10 @@ import { chapters, company, plannedPages } from '../data/site';
     <!-- Planned pages. Only the homepage exists in this phase, so these are text, not
          links, and the header says so. -->
     <div class="site-header__pages" role="group" aria-labelledby="pages-soon">
-      <p class="site-header__soon" id="pages-soon">Coming soon</p>
       <ul>
         {plannedPages.primary.map((name) => <li>{name}</li>)}
       </ul>
+      <p class="site-header__soon" id="pages-soon">More pages soon</p>
     </div>
 
     <div class="site-header__actions">
@@ -45,7 +45,7 @@ import { chapters, company, plannedPages } from '../data/site';
         </ul>
       </nav>
       <div>
-        <p class="label">Site pages, in preparation</p>
+        <p class="label">More pages soon</p>
         <ul class="site-menu__pages">
           {plannedPages.primary.map((name) => <li>{name}</li>)}
         </ul>

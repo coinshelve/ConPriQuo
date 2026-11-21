@@ -4,6 +4,7 @@
  * already published about this work. No metrics, quotations or logos are added.
  */
 import { company } from '../data/site';
+import Lattice from './Lattice.astro';
 
 const engagements = [
   {
@@ -14,7 +15,7 @@ const engagements = [
   {
     client: 'Terex Fuchs',
     kind: 'Oracle CPQ implementation',
-    summary: 'Configured product rules, dynamic pricing and streamlined quote management.',
+    summary: 'Configured product rules, pricing structures and quote management.',
   },
 ];
 
@@ -23,16 +24,17 @@ const work = [
   { term: 'Configuration', detail: 'Attribute-driven bill of materials structures.' },
   { term: 'Rules', detail: 'Constraint logic that keeps every configuration valid.' },
   { term: 'Pricing', detail: 'The Oracle CPQ Pricing Portal for discounting and pricing governance.' },
-  { term: 'Commerce process', detail: 'Guided selling, quotation workflows and multi-level approvals.' },
+  { term: 'Commerce process', detail: 'Quoting workflows, transaction automation and multi-level approvals.' },
 ];
 ---
 
 <section class="engagements" id="engagements" aria-labelledby="engagements-title">
+  <Lattice from="top-right" />
   <div class="wrap">
     <div class="engagements__head">
       <h2 class="chapter" id="engagements-title">
         <span class="tag"><span>Engagements<span class="visually-hidden">: </span></span></span>
-        <span class="h2" data-lines>Two Oracle CPQ programs, on the record.</span>
+        <span class="h2" data-lines>Two Oracle CPQ projects, on the record.</span>
       </h2>
     </div>
 
@@ -61,15 +63,14 @@ const work = [
             ))
           }
         </dl>
-        <p class="built__note">We will walk you through what was built.</p>
         <a
-          class="intent"
+          class="intent built__ask"
           href={`mailto:${company.email}`}
           data-enquiry
           data-enquiry-service="Oracle CPQ implementation"
           data-enquiry-note="We would like to hear about your Oracle CPQ work for Terex ProAll and Terex Fuchs."
         >
-          Ask about either program
+          Ask about either project
         </a>
       </div>
     </div>
@@ -78,8 +79,14 @@ const work = [
 
 <style>
   .engagements {
+    position: relative;
+    overflow: clip;
     background: var(--ground-2);
     padding-block: var(--section);
+  }
+
+  .engagements > .wrap {
+    position: relative;
   }
 
   .engagements__head {
@@ -175,11 +182,8 @@ const work = [
     text-wrap: pretty;
   }
 
-  .built__note {
-    margin-top: 1.6rem;
-    margin-bottom: 0.4rem;
-    color: var(--ink-2);
-    max-width: 34em;
+  .built__ask {
+    margin-top: 1.4rem;
   }
 
   @media (max-width: 60rem) {

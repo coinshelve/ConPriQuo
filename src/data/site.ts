@@ -51,8 +51,8 @@ export const chapters = [
   { id: 'handoff', label: 'Hand off' },
   { id: 'practices', label: 'Practices' },
   { id: 'engagements', label: 'Engagements' },
-  { id: 'staffing', label: 'Staffing' },
   { id: 'delivery', label: 'Delivery' },
+  { id: 'staffing', label: 'Staffing' },
   { id: 'contact', label: 'Contact' },
 ] as const;
 
@@ -74,11 +74,15 @@ export const enquiry = {
     },
     {
       label: 'Staffing',
-      options: ['Contract specialists for Oracle CPQ, Oracle CX or Salesforce', 'IT staff augmentation'],
+      options: [
+        'Contract specialists: Oracle CPQ, Oracle CX or Salesforce',
+        'Contract specialists: engineering, cloud or data',
+        'Staff augmentation for an existing team',
+      ],
     },
     {
       label: 'Other',
-      options: ['Not sure yet'],
+      options: ['Something else, or not sure yet'],
     },
   ],
 } as const;

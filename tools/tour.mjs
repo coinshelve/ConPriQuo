@@ -34,10 +34,10 @@ const STOPS = [
   { name: 'practices', selector: '#practices', offset: -40 },
   { name: 'practices-columns', selector: '.practices__cols', offset: 20 },
   { name: 'engagements', selector: '#engagements', offset: -60 },
+  { name: 'delivery', selector: '#delivery', offset: -40 },
   { name: 'staffing', selector: '#staffing', offset: -40 },
   { name: 'staffing-source', selector: '[data-phase="source"]', offset: 260 },
   { name: 'staffing-coordinate', selector: '[data-phase="coordinate"]', offset: 260 },
-  { name: 'delivery', selector: '#delivery', offset: -40 },
   { name: 'contact', selector: '#contact', offset: -40 },
   { name: 'footer', selector: 'footer.footer', offset: 0 },
 ].filter((s) => !onlyStops || onlyStops.split(',').includes(s.name));

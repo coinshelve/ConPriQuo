@@ -226,7 +226,7 @@ export class Rig {
 
   /** Move the canvas into a slot element and size it to that element. */
   mount(slot: HTMLElement) {
-    if (this.slot === slot) return;
+    if (this.disposed || this.slot === slot) return;
     if (this.slot) {
       this.resizeObserver.unobserve(this.slot);
       this.visibilityObserver.unobserve(this.slot);
@@ -239,7 +239,7 @@ export class Rig {
   }
 
   private measure() {
-    if (!this.slot) return;
+    if (!this.slot || this.disposed) return;
     const w = Math.max(1, Math.round(this.slot.clientWidth));
     const h = Math.max(1, Math.round(this.slot.clientHeight));
     const ratioChanged = this.applyPixelRatio();

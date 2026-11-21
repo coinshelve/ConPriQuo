@@ -61,7 +61,7 @@ import { company, enquiry } from '../data/site';
           </div>
           <div class="field" data-field="phone">
             <label for="enq-phone">Phone number</label>
-            <input id="enq-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="24" required />
+            <input id="enq-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40" required />
             <p class="field__error" id="enq-phone-error" hidden></p>
           </div>
         </div>
@@ -91,7 +91,7 @@ import { company, enquiry } from '../data/site';
 
       <div class="enquiry__done" data-enquiry-done hidden tabindex="-1">
         <span class="enquiry__done-mark" aria-hidden="true"></span>
-        <h3 class="enquiry__done-title" data-enquiry-done-title></h3>
+        <p class="enquiry__done-title" data-enquiry-done-title></p>
         <p class="enquiry__done-text" data-enquiry-done-text></p>
         <div class="enquiry__done-actions">
           <a class="btn btn--small" href={`mailto:${company.email}`} data-enquiry-mailto>Open the email again</a>
@@ -120,8 +120,45 @@ import { company, enquiry } from '../data/site';
       0 2.5rem 5rem -1.5rem rgb(3 4 20 / 0.7);
   }
 
+  /* Anchored near the top instead of centred, so showing error messages only makes
+     the dialog longer and never moves the fields the visitor is about to correct. */
+  .enquiry {
+    margin-top: clamp(1rem, 7vh, 5rem);
+    margin-bottom: auto;
+  }
+
+  /* A browser that does not know the dialog element would otherwise print the closed
+     form at the end of the page. */
+  .enquiry:not([open]) {
+    display: none;
+  }
+
   .enquiry::backdrop {
     background: rgb(6 7 26 / 0.74);
+  }
+
+  /* A short window: tighter spacing so the form and its messages still fit. */
+  @media (max-height: 46rem) and (min-width: 46.01rem) {
+    .enquiry {
+      margin-top: 1rem;
+    }
+
+    .enquiry__aside,
+    .enquiry__main {
+      padding-block: 1.5rem;
+    }
+
+    .enquiry__main {
+      padding-top: 3rem;
+    }
+
+    .enquiry__form {
+      gap: 0.85rem;
+    }
+
+    .field textarea {
+      min-height: 4rem;
+    }
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -423,6 +460,7 @@ import { company, enquiry } from '../data/site';
       width: 100vw;
       max-height: 100dvh;
       height: 100dvh;
+      margin: 0;
       border-radius: 0;
     }
 

@@ -61,7 +61,8 @@ const steps = [
       <div class="staffing__body">
         <p class="lead" data-reveal>
           One BML developer. One integration engineer. One Salesforce administrator who has done it before.
-          Contract staffing and staff augmentation, shortlisted against the role, not the keyword.
+          Contract staffing and staff augmentation. Every candidate is shortlisted against the role, not the
+          keyword.
         </p>
       </div>
     </div>
@@ -86,7 +87,7 @@ const steps = [
     </fieldset>
 
     <div class="shortlist">
-      <div class="shortlist__stage" aria-hidden="true">
+      <div class="shortlist__stage" aria-hidden="true" data-nosnippet>
         <div class="stage" data-stage="team">
           <div class="stage__slot" data-team-slot>
             <noscript><img class="stage-poster" src={teamPoster.src} alt="" width={teamPoster.width} height={teamPoster.height} /></noscript>
@@ -110,7 +111,7 @@ const steps = [
             class="btn btn--accent"
             href={`mailto:${company.email}`}
             data-enquiry
-            data-enquiry-service="Contract specialists for Oracle CPQ, Oracle CX or Salesforce"
+            data-enquiry-service="Contract specialists: Oracle CPQ, Oracle CX or Salesforce"
             data-family-cta
           >
             Request specialists
@@ -122,8 +123,13 @@ const steps = [
 </section>
 
 <script>
-  // The chosen skill family travels with the request, and is announced for anyone who
-  // cannot see the shortlist scene change.
+  // The chosen skill family travels with the request, as the service and as a note,
+  // and is announced for anyone who cannot see the shortlist scene change.
+  const SERVICE: Record<string, string> = {
+    apps: 'Contract specialists: Oracle CPQ, Oracle CX or Salesforce',
+    engineering: 'Contract specialists: engineering, cloud or data',
+    cloud: 'Contract specialists: engineering, cloud or data',
+  };
   const root = document.querySelector<HTMLElement>('[data-staffing]');
   const cta = root?.querySelector<HTMLElement>('[data-family-cta]');
   const status = root?.querySelector<HTMLElement>('[data-family-status]');
@@ -131,7 +137,10 @@ const steps = [
     const apply = (announce: boolean) => {
       if (!input.checked) return;
       const name = input.closest('label')?.querySelector('.family__name')?.textContent?.trim() ?? '';
-      if (cta) cta.dataset.enquiryNote = `Skill family: ${name}.`;
+      if (cta) {
+        cta.dataset.enquiryNote = `Skill family: ${name}.`;
+        if (SERVICE[input.value]) cta.dataset.enquiryService = SERVICE[input.value];
+      }
       if (status && announce) status.textContent = `Shortlist shown for ${name}.`;
     };
     apply(false);
@@ -270,7 +279,7 @@ const steps = [
     position: sticky;
     top: var(--header-h);
     z-index: 5;
-    height: clamp(13rem, 36svh, 20rem);
+    height: clamp(13rem, 36svh, 27rem);
     margin-inline: calc(var(--gutter) * -1);
     background: var(--ground);
     box-shadow: 0 1px 0 var(--hair);
@@ -409,11 +418,11 @@ const steps = [
     }
 
     .phase {
-      min-height: 52svh;
+      min-height: 44svh;
     }
 
     .shortlist__steps {
-      padding-block: 12svh 18svh;
+      padding-block: 14svh 18svh;
     }
   }
 
