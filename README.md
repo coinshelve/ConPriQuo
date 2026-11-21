@@ -27,6 +27,7 @@ npm run preview    # serve dist/ locally
 npm run check      # Astro and TypeScript diagnostics
 npm test           # unit tests for the configure-price-quote engine
 npm run qa         # 51 automated checks against a running preview (see tools/qa.mjs)
+npm run qa:endpoint  # the enquiry form posting to a form endpoint, against a local stand-in
 ```
 
 Node 22.23 or newer is required.
@@ -101,6 +102,12 @@ How a request is delivered is decided at build time by `PUBLIC_FORM_ENDPOINT`:
 PUBLIC_FORM_ENDPOINT=https://forms.example.com/your-form npm run build
 ```
 
+Some form services identify the form by a public key sent with each request instead of by the
+URL. Set `PUBLIC_FORM_ACCESS_KEY` as well and it is sent as `access_key`. For the GitHub Pages
+deployment both values are read from repository variables of the same names (see Deployment).
+`npm run qa:endpoint` checks this mode: it builds a copy with a stand-in endpoint on the local
+machine and sends accepted, refused, slow and unanswered requests through the real dialog.
+
 The email link is kept to 1900 characters, because some mail handlers cut off longer ones. A very
 long requirement is shortened in the link and the dialog tells the visitor so.
 
@@ -155,6 +162,7 @@ npm run posters    # static posters of the 3D scenes (needs the site running)
   accessibility rules for the page and for the open dialog, overflow at eight widths, reduced
   motion, no JavaScript, software-only WebGL, no WebGL, and loading metrics. Run
   `npm run build && npm run preview` first.
+- `tools/qa-endpoint.mjs` checks the enquiry dialog's form-endpoint mode (see above).
 - `tools/tour.mjs` captures one screenshot per chapter, plus the enquiry dialog, at desktop,
   tablet and phone sizes.
 - `tools/shot.mjs` takes exact-size screenshots for visual QA, for example:
@@ -201,7 +209,30 @@ it cannot compete with the real site in search.
 Enquiries are handed to the visitor's email app unless `PUBLIC_FORM_ENDPOINT` is set for the build
 (see "The enquiry dialog").
 
-No hosting or deployment pipeline is configured in this repository yet.
+### GitHub Pages
+
+`.github/workflows/deploy-pages.yml` runs on every push to `main`: it installs, type-checks, runs
+the unit tests, builds, and commits the result on top of the `gh-pages` branch, which GitHub Pages
+serves. The branch is never force-pushed.
+
+Until a custom domain is attached, the deployment is a preview at
+`https://coinshelve.github.io/ConPriQuo/` (noindex, canonical URL on the production domain).
+
+Three optional repository variables control the build (Settings > Secrets and variables >
+Actions > Variables):
+
+| Variable | Effect |
+| --- | --- |
+| `CUSTOM_DOMAIN` | For example `conpriquo-solutions.in`. The site is built for that domain at the root, a `CNAME` file is published, and the site becomes the indexable production site. Set it only after the domain's DNS points at GitHub Pages, otherwise the preview address redirects to a domain that still serves something else. |
+| `PUBLIC_FORM_ENDPOINT` | URL that receives enquiries as a JSON `POST`. |
+| `PUBLIC_FORM_ACCESS_KEY` | Public key for form services that ask for one. |
+
+### The production domain
+
+`conpriquo-solutions.in` is not served from this repository. As of November 2026 it is a WordPress
+site behind Cloudflare. Putting this homepage on that domain is a hosting decision with two routes:
+point the domain's DNS at GitHub Pages and set `CUSTOM_DOMAIN` (the whole domain is then this
+static site), or upload the contents of `dist/` from a production build to the current host.
 
 ## Content rules
 

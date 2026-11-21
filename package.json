@@ -14,7 +14,8 @@
     "test": "node --test tests/engine.test.mjs",
     "assets": "node tools/brand-assets.mjs && node tools/og-image.mjs",
     "posters": "node tools/posters.mjs",
-    "qa": "node tools/qa.mjs"
+    "qa": "node tools/qa.mjs",
+    "qa:endpoint": "node tools/qa-endpoint.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.6",

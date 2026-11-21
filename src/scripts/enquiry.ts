@@ -13,6 +13,11 @@
 import { company } from '../data/site';
 
 const ENDPOINT = String(import.meta.env.PUBLIC_FORM_ENDPOINT ?? '').trim();
+/**
+ * Some form services identify the receiving form by a public key sent with each
+ * request instead of by the URL. When one is configured it travels as `access_key`.
+ */
+const ACCESS_KEY = String(import.meta.env.PUBLIC_FORM_ACCESS_KEY ?? '').trim();
 
 /** Some mail handlers cut off very long links, so the composed link is kept under this. */
 const MAILTO_LIMIT = 1900;
@@ -260,7 +265,12 @@ export function initEnquiry() {
         const response = await fetch(ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ ...values, page: window.location.href, subject: `Website inquiry: ${values.service}` }),
+          body: JSON.stringify({
+            ...(ACCESS_KEY ? { access_key: ACCESS_KEY } : {}),
+            ...values,
+            page: window.location.href,
+            subject: `Website inquiry: ${values.service}`,
+          }),
           signal: abort.signal,
         });
         if (!response.ok) throw new Error(`Form endpoint answered ${response.status}`);
