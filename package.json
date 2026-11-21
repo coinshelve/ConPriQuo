@@ -1,0 +1,33 @@
+{
+  "name": "conpriquo-website",
+  "type": "module",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "test": "node --test tests/engine.test.mjs",
+    "assets": "node tools/brand-assets.mjs && node tools/og-image.mjs",
+    "posters": "node tools/posters.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.6",
+    "astro": "^7.4.13",
+    "three": "^0.187.0"
+  },
+  "description": "ConPriQuo Solutions homepage: Oracle CPQ, Oracle CX and Salesforce consulting with specialized IT staffing.",
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@types/three": "^0.187.0",
+    "axe-core": "^4.14.1",
+    "puppeteer-core": "^25.18.1",
+    "sharp": "^0.35.5",
+    "typescript": "^6.0.3"
+  },
+  "private": true
+}

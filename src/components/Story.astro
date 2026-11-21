@@ -1,0 +1,1760 @@
+---
+/**
+ * The opening and the worked example. One sticky stage holds the 3D model while the
+ * visitor configures, prices and quotes a fictional machine, then follows the quote
+ * into CRM and ERP. Everything is rendered on the server for the default selection,
+ * so the content is complete in the HTML; scripting then makes it live.
+ */
+import {
+  APPROVAL_CHAIN,
+  CATALOG,
+  DEFAULT_SELECTION,
+  MAX_DISCOUNT,
+  evaluate,
+  money,
+  quoteReference,
+} from '../scripts/cpq/engine';
+import unitPoster from '../assets/posters/unit-0.webp';
+
+const ev = evaluate(DEFAULT_SELECTION);
+const sel = ev.selection;
+const inBom = new Map(ev.bom.map((line) => [line.part, line]));
+const reference = quoteReference(sel);
+const approvalsNeeded = ev.approvals.filter((step) => step.required);
+---
+
+<div class="story wrap" data-story>
+  <div class="story__stage" aria-hidden="true">
+    <div class="stage" data-stage="unit">
+      <div class="stage__slot" data-stage-slot>
+        <noscript><img class="stage-poster" src={unitPoster.src} alt="" width={unitPoster.width} height={unitPoster.height} /></noscript>
+      </div>
+      <div class="stage__labels" data-stage-labels></div>
+      <p class="stage__note label">HX-6 handling unit &nbsp;/&nbsp; illustrative model</p>
+    </div>
+  </div>
+
+  <div class="story__text">
+    <!-- ================= Opening ================= -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <p class="hero__name" aria-label="Configure, Price, Quote">
+        <span><b>Con</b>figure</span>
+        <span><b>Pri</b>ce</span>
+        <span><b>Quo</b>te</span>
+      </p>
+      <h1 class="display" id="hero-title">
+        Oracle&nbsp;CPQ, Oracle&nbsp;CX and Salesforce consulting.
+        <span class="hero__how">By the project, or by the specialist.</span>
+      </h1>
+      <p class="lead hero__lead">
+        ConPriQuo Solutions implements, integrates and supports Oracle CPQ, Oracle CX and Salesforce for
+        companies that sell complex products. When the need is a person rather than a project, we shortlist
+        contract specialists for the role.
+      </p>
+      <div class="hero__cta">
+        <a class="btn" href="#brief" data-brief-path="project">Scope a project</a>
+        <a class="btn btn--line" href="#brief" data-brief-path="staffing">Request specialists</a>
+      </div>
+      <a class="hero__next" href="#configure">
+        <span class="hero__next-mark" aria-hidden="true"></span>
+        <span>Or try the work first. Configure the HX-6 and follow its quote.</span>
+      </a>
+    </section>
+
+    <!-- ================= Configure ================= -->
+    <section class="step" id="configure" data-step="configure" aria-labelledby="configure-title">
+      <p class="tag"><span><b>Con</b>figure</span></p>
+      <h2 class="h2" id="configure-title" data-lines>Every option has consequences. The model should know them.</h2>
+      <p class="body" data-reveal>
+        A seller should not have to remember that a longer arm needs more ballast, or that a vacuum lifter on a
+        diesel unit needs its own pump. In Oracle CPQ we build that knowledge into the product model:
+        attribute-driven bills of materials, constraint and recommendation rules, and guided selling that only
+        offers what can actually be built.
+      </p>
+
+      <div class="demo" data-nosnippet>
+      <p class="demo__note" data-reveal>
+        The HX-6 does not exist. We invented it for this page so you can operate the kind of logic we build
+        without borrowing anyone's product data. ConPriQuo does not sell machines. We build the systems that
+        quote them.
+      </p>
+
+      <form class="bench" data-bench aria-label="Configure the HX-6 handling unit" data-reveal>
+        <div class="bench__head">
+          <p class="bench__title">HX-6 handling unit</p>
+          <p class="label">Invented for this page</p>
+        </div>
+
+        <fieldset class="opt" data-attr="reach">
+          <legend class="label">Reach</legend>
+          <div class="opt__choices">
+            {
+              ev.reach.map((option) => (
+                <label class="choice" data-kind="bar" data-value={option.value}>
+                  <input
+                    type="radio"
+                    name="reach"
+                    value={option.value}
+                    checked={sel.reach === option.value}
+                    aria-disabled={option.available ? undefined : 'true'}
+                  />
+                  <span class="choice__mark" aria-hidden="true" />
+                  <span class="choice__text">
+                    <span class="choice__name">{option.label}</span>
+                    <span class="choice__detail mono">{option.detail}</span>
+                  </span>
+                </label>
+              ))
+            }
+          </div>
+          <p class="opt__reason" data-reason="reach" hidden></p>
+        </fieldset>
+
+        <fieldset class="opt" data-attr="tool">
+          <legend class="label">Tool</legend>
+          <div class="opt__choices">
+            {
+              ev.tool.map((option) => (
+                <label class="choice" data-kind="dot" data-value={option.value}>
+                  <input
+                    type="radio"
+                    name="tool"
+                    value={option.value}
+                    checked={sel.tool === option.value}
+                    aria-disabled={option.available ? undefined : 'true'}
+                  />
+                  <span class="choice__mark" aria-hidden="true" />
+                  <span class="choice__text">
+                    <span class="choice__name">{option.label}</span>
+                    <span class="choice__detail mono">{option.detail}</span>
+                  </span>
+                </label>
+              ))
+            }
+          </div>
+          <p class="opt__reason" data-reason="tool" hidden></p>
+        </fieldset>
+
+        <fieldset class="opt" data-attr="power">
+          <legend class="label">Power</legend>
+          <div class="opt__choices">
+            {
+              ev.power.map((option) => (
+                <label class="choice" data-kind="dot" data-value={option.value}>
+                  <input type="radio" name="power" value={option.value} checked={sel.power === option.value} />
+                  <span class="choice__mark" aria-hidden="true" />
+                  <span class="choice__text">
+                    <span class="choice__name">{option.label}</span>
+                    <span class="choice__detail mono">{option.detail}</span>
+                  </span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+      </form>
+
+      <div class="rules" data-reveal>
+        <p class="label" id="rules-label">Rules that fired</p>
+        <ul class="rules__list" data-rules aria-labelledby="rules-label" aria-live="polite">
+          {
+            ev.rules
+              .filter((rule) => rule.kind === 'constraint' || rule.kind === 'recommendation' || rule.kind === 'bom')
+              .map((rule) => (
+                <li data-kind={rule.kind}>
+                  <span class="rules__id mono">{rule.id}</span>
+                  <span>{rule.text}</span>
+                </li>
+              ))
+          }
+          <li class="rules__empty" data-rules-empty>
+            <span class="rules__id mono">none</span>
+            <span>This combination needs no intervention. Try the long reach, or a vacuum lifter on diesel.</span>
+          </li>
+        </ul>
+      </div>
+
+      <figure class="code" data-reveal>
+        <figcaption class="label">Rule R-04 as it might be written in BML, simplified</figcaption>
+        <pre class="mono"><code>{`// Recommendation: ballast follows reach
+if (reach == "LONG") {
+    return 2;
+}
+return 1;`}</code></pre>
+      </figure>
+      </div>
+
+      <a
+        class="intent"
+        href="#brief"
+        data-brief-path="project"
+        data-brief-platform="Oracle CPQ"
+        data-brief-need="We need help with product configuration in Oracle CPQ: product models, bills of materials, constraints or guided selling."
+      >
+        Our product model needs this kind of work
+      </a>
+    </section>
+
+    <!-- ================= Price ================= -->
+    <section class="step" id="price" data-step="price" aria-labelledby="price-title">
+      <p class="tag"><span><b>Pri</b>ce</span></p>
+      <h2 class="h2" id="price-title" data-lines>A price is a chain of decisions. Each one can be written down.</h2>
+      <p class="body" data-reveal>
+        List price, volume tier, negotiated discount, and the point at which someone senior has to sign. We write
+        that logic in BML and BMQL, connect it to the pricing data you already maintain, and show the seller the
+        approval route before the quote leaves their hands.
+      </p>
+
+      <div class="demo" data-nosnippet>
+      <div class="sheet" data-reveal>
+        <table class="bom">
+          <caption class="label">Bill of materials, per unit</caption>
+          <thead>
+            <tr>
+              <th scope="col">Part</th>
+              <th scope="col">Description</th>
+              <th scope="col" class="num">List price</th>
+            </tr>
+          </thead>
+          <tbody data-bom>
+            {
+              CATALOG.map((item) => {
+                const line = inBom.get(item.part);
+                return (
+                  <tr data-part={item.part} hidden={!line}>
+                    <td class="mono">{item.part}</td>
+                    <td>
+                      {item.description}
+                      <span class="bom__rule mono" data-rule-tag hidden={line?.source !== 'rule'}>
+                        {line?.ruleId ?? ''}
+                      </span>
+                    </td>
+                    <td class="mono num">{money(item.unitPrice)}</td>
+                  </tr>
+                );
+              })
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" colspan="2">Unit list price</th>
+              <td class="mono num" data-out="unitList">{money(ev.pricing.unitList)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="levers" data-reveal>
+        <div class="lever">
+          <span class="label" id="qty-label">Quantity</span>
+          <div class="stepper" role="group" aria-labelledby="qty-label">
+            <button type="button" data-qty="-1" aria-label="One unit fewer">
+              <span aria-hidden="true">&minus;</span>
+            </button>
+            <output class="stepper__value num" data-out="quantity" aria-live="polite">{sel.quantity}</output>
+            <button type="button" data-qty="1" aria-label="One unit more">
+              <span aria-hidden="true">+</span>
+            </button>
+          </div>
+          <span class="lever__note mono" data-out="volumeNote">
+            {ev.pricing.volumePercent > 0 ? `${ev.pricing.volumePercent}% volume tier` : 'No volume tier yet'}
+          </span>
+        </div>
+
+        <div class="lever lever--wide">
+          <label class="label" for="discount">Negotiated discount</label>
+          <div class="slider">
+            <input
+              id="discount"
+              type="range"
+              min="0"
+              max={MAX_DISCOUNT}
+              step="1"
+              value={sel.discount}
+              data-discount
+              style={`--fill:${(sel.discount / MAX_DISCOUNT) * 100}%`}
+            />
+            <div class="slider__ticks" aria-hidden="true">
+              {
+                APPROVAL_CHAIN.map((step) => (
+                  <span style={`left:${(step.threshold / MAX_DISCOUNT) * 100}%`}>
+                    <i />
+                    <em class="mono">{step.threshold}%</em>
+                  </span>
+                ))
+              }
+            </div>
+          </div>
+          <output class="lever__value num" for="discount" data-out="discount">{sel.discount}%</output>
+        </div>
+      </div>
+
+      <dl class="build" data-reveal>
+        <div class="build__row">
+          <dt>Unit list price</dt>
+          <dd class="mono num" data-out="unitList2">{money(ev.pricing.unitList)}</dd>
+        </div>
+        <div class="build__row" data-row="volume">
+          <dt>Volume tier <span class="mono" data-out="volumePercent">{ev.pricing.volumePercent}%</span></dt>
+          <dd class="mono num" data-out="volumeAmount">&minus;{money(ev.pricing.volumeAmount)}</dd>
+        </div>
+        <div class="build__row" data-row="negotiated">
+          <dt>Negotiated <span class="mono" data-out="negotiatedPercent">{ev.pricing.negotiatedPercent}%</span></dt>
+          <dd class="mono num" data-out="negotiatedAmount">&minus;{money(ev.pricing.negotiatedAmount)}</dd>
+        </div>
+        <div class="build__row build__row--net">
+          <dt>Net unit price</dt>
+          <dd class="mono num" data-out="unitNet">{money(ev.pricing.unitNet)}</dd>
+        </div>
+        <div class="build__row build__row--total">
+          <dt>
+            Quote total
+            <span class="mono"><span data-out="quantity2">{sel.quantity}</span> units, illustrative figures</span>
+          </dt>
+          <dd class="num" data-out="total">{money(ev.pricing.total)}</dd>
+        </div>
+      </dl>
+
+      <div class="route" data-route data-state={ev.approvalRequired ? 'required' : 'clear'} data-reveal>
+        <p class="label" id="route-label">Approval route</p>
+        <ol class="route__chain" aria-labelledby="route-label">
+          <li class="route__node is-done">
+            <span class="route__dot" aria-hidden="true"></span>
+            <span class="route__role">Seller</span>
+            <span class="route__rule mono">up to {APPROVAL_CHAIN[0].threshold}%</span>
+          </li>
+          {
+            ev.approvals.map((step) => (
+              <li class:list={['route__node', { 'is-required': step.required }]} data-approver={step.role}>
+                <span class="route__dot" aria-hidden="true" />
+                <span class="route__role">{step.role}</span>
+                <span class="route__rule mono">above {step.threshold}%</span>
+              </li>
+            ))
+          }
+        </ol>
+        <p class="route__status" data-out="approvalStatus" aria-live="polite">
+          {
+            ev.approvalRequired
+              ? `Needs sign-off from ${approvalsNeeded.map((step) => step.role.toLowerCase()).join(' and ')}.`
+              : 'Within seller authority. No sign-off needed.'
+          }
+        </p>
+      </div>
+
+      <figure class="code" data-reveal>
+        <figcaption class="label">The first approval condition as BML, simplified</figcaption>
+        <pre class="mono"><code>{`// Approval reason: discount above seller authority
+if (negotiatedDiscount_quote > 10) {
+    return true;
+}
+return false;`}</code></pre>
+      </figure>
+      </div>
+
+      <a
+        class="intent"
+        href="#brief"
+        data-brief-path="project"
+        data-brief-platform="Oracle CPQ"
+        data-brief-need="Our pricing, discounting or approval rules in Oracle CPQ need rework."
+      >
+        Our pricing or approval rules need rework
+      </a>
+    </section>
+
+    <!-- ================= Quote ================= -->
+    <section class="step" id="quote" data-step="quote" aria-labelledby="quote-title">
+      <p class="tag"><span><b>Quo</b>te</span></p>
+      <h2 class="h2" id="quote-title" data-lines>The document is the easy part, once everything behind it is right.</h2>
+      <p class="body" data-reveal>
+        The quote document is generated from the data the seller has just worked through: lines, prices, terms and
+        approval status. Nothing is retyped. We configure the commerce process that carries a quote from draft to
+        approval to order, and design the documents it produces.
+      </p>
+
+      <div class="demo" data-nosnippet>
+      <article class="doc" data-doc data-reveal aria-label="Quote document generated from your configuration">
+        <header class="doc__head">
+          <div>
+            <p class="doc__kind">Quotation</p>
+            <p class="mono" data-out="reference">{reference}</p>
+          </div>
+          <dl class="doc__meta mono">
+            <div><dt>Issued</dt><dd data-out="issued">On generation</dd></div>
+            <div><dt>Valid</dt><dd>30 days</dd></div>
+            <div><dt>Figures</dt><dd>Illustrative</dd></div>
+          </dl>
+        </header>
+
+        <table class="doc__lines">
+          <thead>
+            <tr>
+              <th scope="col">Item</th>
+              <th scope="col" class="num">Qty</th>
+              <th scope="col" class="num">Amount</th>
+            </tr>
+          </thead>
+          <tbody data-doc-lines>
+            {
+              CATALOG.map((item) => {
+                const line = inBom.get(item.part);
+                return (
+                  <tr data-part={item.part} hidden={!line}>
+                    <td>
+                      <span class="doc__desc">{item.description}</span>
+                      <span class="mono doc__part">{item.part}</span>
+                    </td>
+                    <td class="mono num" data-out-qty>{sel.quantity}</td>
+                    <td class="mono num" data-out-amount>{money(item.unitPrice * sel.quantity)}</td>
+                  </tr>
+                );
+              })
+            }
+          </tbody>
+        </table>
+
+        <dl class="doc__totals">
+          <div>
+            <dt>List total</dt>
+            <dd class="mono num" data-out="listTotal">{money(ev.pricing.listTotal)}</dd>
+          </div>
+          <div>
+            <dt>Discounts</dt>
+            <dd class="mono num" data-out="discountTotal">&minus;{money(ev.pricing.listTotal - ev.pricing.total)}</dd>
+          </div>
+          <div class="doc__grand">
+            <dt>Total</dt>
+            <dd class="num" data-out="total2">{money(ev.pricing.total)}</dd>
+          </div>
+        </dl>
+
+        <footer class="doc__foot">
+          <p class="doc__stamp" data-stamp data-state={ev.approvalRequired ? 'pending' : 'approved'}>
+            <span class="doc__stamp-dot" aria-hidden="true"></span>
+            <span data-out="stampText">{ev.approvalRequired ? 'Awaiting approval' : 'Approved within seller authority'}</span>
+          </p>
+          <p class="small">Illustrative document. The HX-6, its parts and its prices are fictional.</p>
+        </footer>
+      </article>
+      </div>
+
+      <a
+        class="intent"
+        href="#brief"
+        data-brief-path="project"
+        data-brief-platform="Oracle CPQ"
+        data-brief-need="Our quote documents or the commerce process behind them need work."
+      >
+        Our quote documents or commerce process need work
+      </a>
+    </section>
+
+    <!-- ================= Hand off ================= -->
+    <section class="step" id="handoff" data-step="handoff" aria-labelledby="handoff-title">
+      <p class="tag"><span>Hand off</span></p>
+      <h2 class="h2" id="handoff-title" data-lines>A quote that stops at the PDF has not finished its job.</h2>
+      <p class="body" data-reveal>
+        The opportunity in CRM needs the amount and the status. ERP needs every line as an order it can fulfil. We
+        integrate Oracle CPQ with CRM, ERP and enterprise pricing systems, and map each field so that what was
+        quoted is what gets built and invoiced.
+      </p>
+
+      <div class="demo" data-nosnippet>
+      <div class="map" data-map data-reveal>
+        <div class="map__col map__col--from">
+          <p class="label">Quote in CPQ</p>
+          <ul>
+            <li data-field="total"><span>Total</span><b class="mono num" data-out="mapTotal">{money(ev.pricing.total)}</b></li>
+            <li data-field="status"><span>Status</span><b class="mono" data-out="mapStatus">{ev.approvalRequired ? 'Awaiting approval' : 'Approved'}</b></li>
+            <li data-field="reference"><span>Reference</span><b class="mono" data-out="mapRef">{reference}</b></li>
+            <li data-field="lines"><span>Lines</span><b class="mono num" data-out="mapLines">{ev.bom.length}</b></li>
+            <li data-field="net"><span>Net unit price</span><b class="mono num" data-out="mapNet">{money(ev.pricing.unitNet)}</b></li>
+            <li data-field="qty"><span>Quantity</span><b class="mono num" data-out="mapQty">{sel.quantity}</b></li>
+          </ul>
+        </div>
+
+        <svg class="map__wires" data-map-wires aria-hidden="true" focusable="false"></svg>
+
+        <div class="map__col map__col--to">
+          <div class="map__system" data-system="crm">
+            <p class="label">CRM opportunity</p>
+            <ul>
+              <li data-target="total"><span>Amount</span></li>
+              <li data-target="status"><span>Quote status</span></li>
+              <li data-target="reference"><span>Primary quote</span></li>
+            </ul>
+          </div>
+          <div class="map__system" data-system="erp">
+            <p class="label">ERP sales order</p>
+            <ul>
+              <li data-target="lines"><span>Order lines</span></li>
+              <li data-target="net"><span>Unit selling price</span></li>
+              <li data-target="qty"><span>Ordered quantity</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="small map__note" data-reveal>
+        Field names are simplified. In a real programme the mapping also covers accounts, price lists, tax,
+        currencies and the error cases nobody draws on the whiteboard.
+      </p>
+      </div>
+
+      <a
+        class="intent"
+        href="#brief"
+        data-brief-path="project"
+        data-brief-platform="Integration"
+        data-brief-kind="Integration"
+        data-brief-need="We need Oracle CPQ connected to our CRM or ERP so quotes become opportunities and orders without re-keying."
+      >
+        We need CPQ connected to CRM or ERP
+      </a>
+    </section>
+  </div>
+</div>
+
+<style>
+  /* ------------------------------------------------------------------
+     Layout: scrolling text column, sticky stage
+     ------------------------------------------------------------------ */
+  .story {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .story__stage {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 5;
+    height: clamp(13.5rem, 38svh, 21rem);
+    margin-inline: calc(var(--gutter) * -1);
+    background: var(--paper);
+    box-shadow: 0 1px 0 var(--hair);
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: clip;
+  }
+
+  .stage__slot,
+  .stage__labels {
+    position: absolute;
+    inset: 0;
+  }
+
+  .stage__slot :global(.stage-canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 700ms linear;
+  }
+
+  .stage__slot :global(.stage-canvas.is-ready) {
+    opacity: 1;
+  }
+
+  .stage__labels {
+    pointer-events: none;
+  }
+
+  .stage__note {
+    position: absolute;
+    right: var(--gutter);
+    bottom: 0.7rem;
+    font-size: 0.6rem;
+    opacity: 0.85;
+  }
+
+  @media (min-width: 64rem) {
+    .story {
+      grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+      column-gap: clamp(2rem, 4vw, 5.5rem);
+    }
+
+    .story__text {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .story__stage {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      height: calc(100svh - var(--header-h));
+      margin-inline: 0 calc(var(--gutter) * -1);
+      background: none;
+      box-shadow: none;
+      z-index: 1;
+    }
+
+    .stage__note {
+      bottom: 1.5rem;
+      font-size: var(--step-label);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Opening
+     ------------------------------------------------------------------ */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-block: clamp(1.25rem, 4vh, 4.5rem) clamp(2.5rem, 7vh, 5rem);
+  }
+
+  .hero__name {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.5rem;
+    margin-bottom: clamp(1.1rem, 2.6vh, 2rem);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-stretch: 96%;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .hero__name b {
+    font-weight: 700;
+    color: var(--ink);
+    box-shadow: inset 0 -0.42em 0 rgb(237 16 126 / 0.2);
+  }
+
+  /* The headline also answers to viewport height, so the calls to action stay in view
+     on short laptop screens. */
+  .hero .display {
+    font-size: min(var(--step-display), 5.6svh + 0.75rem);
+  }
+
+  .hero .lead {
+    font-size: min(var(--step-lead), 1.9svh + 0.45rem);
+  }
+
+  .hero__how {
+    display: block;
+    margin-top: 0.14em;
+    font-weight: 380;
+    color: var(--ink-2);
+  }
+
+  .hero__lead {
+    max-width: 33em;
+    margin-top: clamp(1.25rem, 3vh, 2rem);
+  }
+
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: clamp(1.6rem, 4vh, 2.6rem);
+  }
+
+  .hero__next {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    align-self: flex-start;
+    margin-top: clamp(1.75rem, 5vh, 3.25rem);
+    font-size: var(--step-small);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+
+  .hero__next:hover span:last-child {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  .hero__next-mark {
+    position: relative;
+    flex: none;
+    width: 0.5rem;
+    height: 2.2rem;
+    border-radius: 0.5rem;
+    background: var(--hair);
+    overflow: hidden;
+  }
+
+  .hero__next-mark::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 45%;
+    border-radius: inherit;
+    background: var(--magenta);
+    animation: drop 2.6s var(--ease-in-out) infinite;
+  }
+
+  @keyframes drop {
+    0% {
+      transform: translateY(-110%);
+    }
+    55%,
+    100% {
+      transform: translateY(245%);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .hero {
+      min-height: calc(100svh - var(--header-h));
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero > * {
+      animation: rise 900ms var(--ease-out) both;
+    }
+
+    .hero > :nth-child(1) {
+      animation-delay: 60ms;
+    }
+    .hero > :nth-child(2) {
+      animation-delay: 140ms;
+    }
+    .hero > :nth-child(3) {
+      animation-delay: 260ms;
+    }
+    .hero > :nth-child(4) {
+      animation-delay: 360ms;
+    }
+    .hero > :nth-child(5) {
+      animation-delay: 480ms;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 1.1rem, 0);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Steps
+     ------------------------------------------------------------------ */
+  .step {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(1.25rem, 2.6vh, 1.9rem);
+    padding-block: clamp(3.5rem, 11vh, 7rem);
+  }
+
+  @media (min-width: 64rem) {
+    .step {
+      min-height: 100svh;
+    }
+  }
+
+  .step .h2 {
+    max-width: 15.5em;
+  }
+
+  /* The operable part of each chapter. Marked data-nosnippet in the markup so search
+     engines do not present the invented product's figures as facts about the company. */
+  .demo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.25rem, 2.6vh, 1.9rem);
+  }
+
+  .demo__note {
+    max-width: 36em;
+    padding-left: 1rem;
+    font-size: var(--step-small);
+    line-height: 1.5;
+    color: var(--ink-2);
+    box-shadow: inset 3px 0 0 var(--navy);
+  }
+
+  /* A rule, shown the way it is actually written. */
+  .code {
+    margin: 0;
+  }
+
+  .code figcaption {
+    padding-bottom: 0.6rem;
+  }
+
+  .code pre {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    background: var(--navy);
+    color: var(--on-navy);
+    font-size: 0.74rem;
+    line-height: 1.75;
+    tab-size: 4;
+  }
+
+  /* Each chapter ends with the request a visitor is most likely to have at that point.
+     It opens the brief with that request already written. */
+  .intent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    align-self: flex-start;
+    min-height: 2.75rem;
+    font-weight: 560;
+    font-stretch: 104%;
+    text-decoration: underline;
+    text-decoration-color: var(--hair-strong);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color var(--t-fast) linear;
+  }
+
+  .intent::before {
+    content: '';
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--magenta);
+    transition: width var(--t-med) var(--ease-out);
+  }
+
+  .intent:hover,
+  .intent:focus-visible {
+    text-decoration-color: currentColor;
+  }
+
+  .intent:hover::before,
+  .intent:focus-visible::before {
+    width: 1.6rem;
+  }
+
+  /* ------------------------------------------------------------------
+     Bench: the configurator. A specification form, not a card.
+     ------------------------------------------------------------------ */
+  .bench {
+    border-top: 2px solid var(--navy);
+    margin-top: 0.5rem;
+  }
+
+  .bench__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+    padding-block: 0.85rem;
+  }
+
+  .bench__title {
+    font-size: 1.14rem;
+    font-weight: 600;
+    font-stretch: 106%;
+    letter-spacing: -0.01em;
+  }
+
+  .opt {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.25rem 1rem;
+    margin: 0;
+    padding: 0.95rem 0;
+    border: 0;
+    border-top: 1px solid var(--hair);
+    min-width: 0;
+  }
+
+  .opt legend {
+    float: left;
+    padding: 0.62rem 0 0;
+    width: 5.5rem;
+  }
+
+  .opt__choices {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.5rem;
+  }
+
+  .choice {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    padding: 0.3rem 0.85rem 0.3rem 0.6rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color var(--t-fast) linear;
+  }
+
+  .choice input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .choice:hover {
+    background: var(--wash);
+  }
+
+  .choice:has(input:focus-visible) {
+    outline: 2px solid var(--navy);
+    outline-offset: 1px;
+  }
+
+  .choice:has(input:checked) {
+    background: var(--navy);
+    color: var(--paper);
+  }
+
+  .choice__mark {
+    flex: none;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px var(--ink-3);
+    transition:
+      width var(--t-med) var(--ease-seat),
+      background-color var(--t-fast) linear,
+      box-shadow var(--t-fast) linear;
+  }
+
+  .choice[data-kind='bar'] .choice__mark {
+    width: 1.1rem;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+  }
+
+  .choice[data-kind='bar'][data-value='long'] .choice__mark {
+    width: 1.9rem;
+  }
+
+  .choice:has(input:checked) .choice__mark {
+    background: var(--mark, var(--paper));
+    box-shadow: none;
+  }
+
+  .choice[data-kind='bar'] {
+    --mark: var(--magenta);
+  }
+  .choice[data-value='gripper'],
+  .choice[data-value='electric'] {
+    --mark: var(--cyan);
+  }
+  .choice[data-value='vacuum'] {
+    --mark: var(--orange);
+  }
+
+  .choice__text {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .choice__name {
+    font-weight: 560;
+    font-stretch: 104%;
+  }
+
+  .choice__detail {
+    font-size: 0.68rem;
+    opacity: 0.72;
+  }
+
+  .choice:has(input[aria-disabled='true']) {
+    cursor: not-allowed;
+    background: none;
+    color: var(--ink-3);
+  }
+
+  .choice:has(input[aria-disabled='true']) .choice__mark {
+    box-shadow: inset 0 0 0 1.5px var(--hair-strong);
+    background: linear-gradient(to top right, transparent 44%, var(--ink-3) 44%, var(--ink-3) 56%, transparent 56%);
+  }
+
+  .choice:has(input[aria-disabled='true']) .choice__name {
+    font-weight: 400;
+  }
+
+  .opt__reason {
+    grid-column: 2;
+    display: flex;
+    gap: 0.6rem;
+    max-width: 34em;
+    padding: 0.55rem 0.75rem;
+    margin-top: 0.3rem;
+    font-size: var(--step-small);
+    line-height: 1.4;
+    color: var(--ink);
+    background: rgb(247 148 29 / 0.16);
+    border-left: 3px solid var(--orange);
+  }
+
+  .opt__reason[hidden] {
+    display: none;
+  }
+
+  .opt__reason.is-nudged {
+    animation: nudge 420ms var(--ease-out);
+  }
+
+  @keyframes nudge {
+    30% {
+      transform: translateX(0.4rem);
+    }
+  }
+
+  /* rule log */
+  .rules {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .rules__list {
+    display: grid;
+    gap: 0.35rem;
+    min-height: 3.2rem;
+  }
+
+  .rules__list :global(li) {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: baseline;
+    font-size: var(--step-small);
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+
+  .rules__list :global(.rules__id) {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .rules__list :global(li[data-kind]) :global(.rules__id) {
+    box-shadow: inset 0 -0.5em 0 rgb(237 16 126 / 0.2);
+    justify-self: start;
+  }
+
+  .rules__list :global(li.is-new) {
+    animation: fired 900ms var(--ease-out);
+  }
+
+  @keyframes fired {
+    from {
+      opacity: 0;
+      transform: translateX(-0.75rem);
+    }
+  }
+
+  .rules__list:has(:global(li[data-kind])) .rules__empty {
+    display: none;
+  }
+
+  .rules__empty {
+    color: var(--ink-3);
+  }
+
+  /* ------------------------------------------------------------------
+     Price: bill of materials, levers, price build, approval route
+     ------------------------------------------------------------------ */
+  .sheet {
+    border-top: 2px solid var(--navy);
+    margin-top: 0.5rem;
+  }
+
+  .bom {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--step-small);
+  }
+
+  .bom caption {
+    caption-side: top;
+    text-align: left;
+    padding: 0.85rem 0 0.5rem;
+  }
+
+  .bom th,
+  .bom td {
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+    vertical-align: baseline;
+    border-top: 1px solid var(--hair);
+  }
+
+  .bom thead th {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-top: 0;
+    padding-block: 0.2rem 0.45rem;
+  }
+
+  .bom td.mono {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .bom .num {
+    text-align: right;
+    padding-right: 0;
+  }
+
+  .bom tfoot th,
+  .bom tfoot td {
+    border-top: 1px solid var(--navy);
+    font-weight: 600;
+    padding-top: 0.6rem;
+  }
+
+  .bom tfoot td.mono {
+    font-size: 0.8rem;
+  }
+
+  .bom__rule {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: rgb(237 16 126 / 0.16);
+  }
+
+  .bom tbody tr {
+    transition: background-color 1.4s linear;
+  }
+
+  .bom tbody :global(tr.is-new) {
+    background: rgb(237 16 126 / 0.14);
+    transition-duration: 0s;
+  }
+
+  .levers {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1.5rem clamp(1.5rem, 4vw, 3rem);
+    align-items: start;
+  }
+
+  .lever {
+    display: grid;
+    gap: 0.6rem;
+    justify-items: start;
+  }
+
+  .lever--wide {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 1rem;
+    align-items: center;
+    justify-items: stretch;
+  }
+
+  .lever--wide .label {
+    grid-column: 1 / -1;
+  }
+
+  .lever__note {
+    font-size: 0.66rem;
+    color: var(--ink-3);
+  }
+
+  .lever__value {
+    min-width: 3.2ch;
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-stretch: 108%;
+    text-align: right;
+    letter-spacing: -0.02em;
+  }
+
+  .stepper {
+    display: inline-grid;
+    grid-template-columns: 2.75rem 3.1rem 2.75rem;
+    align-items: center;
+    box-shadow: inset 0 0 0 1.5px var(--navy);
+    border-radius: 2px;
+  }
+
+  .stepper button {
+    height: 2.75rem;
+    font-size: 1.3rem;
+    line-height: 1;
+    transition: background-color var(--t-fast) linear;
+  }
+
+  .stepper button:hover {
+    background: var(--wash);
+  }
+
+  .stepper button:disabled {
+    color: var(--hair-strong);
+    cursor: default;
+    background: none;
+  }
+
+  .stepper__value {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 600;
+    font-stretch: 108%;
+  }
+
+  .slider {
+    position: relative;
+    padding-block: 0.55rem 1.35rem;
+  }
+
+  .slider input {
+    display: block;
+    width: 100%;
+    height: 1.65rem;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  .slider input::-webkit-slider-runnable-track {
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(to right, var(--magenta) var(--fill), var(--hair) var(--fill));
+  }
+
+  .slider input::-moz-range-track {
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--hair);
+  }
+
+  .slider input::-moz-range-progress {
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--magenta);
+  }
+
+  .slider input::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.65rem;
+    height: 1.65rem;
+    margin-top: -0.575rem;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 0.3rem solid var(--paper);
+    box-shadow: 0 0 0 1.5px var(--navy);
+  }
+
+  .slider input::-moz-range-thumb {
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 0.3rem solid var(--paper);
+    box-shadow: 0 0 0 1.5px var(--navy);
+  }
+
+  .slider input:focus-visible {
+    outline: none;
+  }
+
+  .slider input:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 1.5px var(--navy),
+      0 0 0 5px rgb(17 18 60 / 0.22);
+  }
+
+  .slider input:focus-visible::-moz-range-thumb {
+    box-shadow:
+      0 0 0 1.5px var(--navy),
+      0 0 0 5px rgb(17 18 60 / 0.22);
+  }
+
+  .slider__ticks {
+    position: absolute;
+    inset: auto 0.825rem 0 0.825rem;
+    height: 1.35rem;
+    pointer-events: none;
+  }
+
+  .slider__ticks span {
+    position: absolute;
+    top: 0;
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    transform: translateX(-50%);
+  }
+
+  .slider__ticks i {
+    width: 1.5px;
+    height: 0.4rem;
+    background: var(--ink-3);
+  }
+
+  .slider__ticks em {
+    font-style: normal;
+    font-size: 0.58rem;
+    color: var(--ink-3);
+  }
+
+  .build {
+    display: grid;
+    border-top: 2px solid var(--navy);
+  }
+
+  .build__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--hair);
+    font-size: var(--step-small);
+  }
+
+  .build__row:first-child {
+    border-top: 0;
+  }
+
+  .build__row dt .mono {
+    margin-left: 0.4rem;
+    font-size: 0.66rem;
+    color: var(--ink-3);
+  }
+
+  .build__row dd.mono {
+    font-size: 0.78rem;
+  }
+
+  .build__row--net {
+    font-weight: 600;
+    border-top-color: var(--navy);
+  }
+
+  .build__row--total {
+    align-items: flex-end;
+    padding-top: 0.9rem;
+    border-top: 0;
+  }
+
+  .build__row--total dt {
+    display: grid;
+    gap: 0.15rem;
+    font-weight: 600;
+  }
+
+  .build__row--total dt .mono {
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .build__row--total dd {
+    font-size: clamp(2.2rem, 1.4rem + 3.2vw, 3.6rem);
+    font-weight: 600;
+    font-stretch: 112%;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  /* approval route */
+  .route {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .route__chain {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .route__node {
+    position: relative;
+    display: grid;
+    gap: 0.15rem;
+    padding-top: 1.55rem;
+    padding-right: 0.5rem;
+  }
+
+  .route__node::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0.42rem;
+    height: 2px;
+    background: var(--hair-strong);
+  }
+
+  .route__node:last-child::before {
+    right: auto;
+    width: 0.5rem;
+  }
+
+  .route__dot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 50%;
+    background: var(--paper);
+    box-shadow: inset 0 0 0 2px var(--hair-strong);
+    transition:
+      background-color var(--t-med) linear,
+      box-shadow var(--t-med) linear,
+      transform var(--t-med) var(--ease-seat);
+  }
+
+  .route__node.is-done .route__dot {
+    background: var(--navy);
+    box-shadow: none;
+  }
+
+  .route__node.is-required .route__dot {
+    background: var(--orange);
+    box-shadow: inset 0 0 0 2px var(--navy);
+    transform: scale(1.3);
+  }
+
+  .route__role {
+    font-weight: 560;
+    font-stretch: 104%;
+    font-size: var(--step-small);
+    color: var(--ink-3);
+    transition: color var(--t-med) linear;
+  }
+
+  .route__node.is-done .route__role,
+  .route__node.is-required .route__role {
+    color: var(--ink);
+  }
+
+  .route__rule {
+    font-size: 0.62rem;
+    color: var(--ink-3);
+  }
+
+  .route__status {
+    font-size: var(--step-small);
+    color: var(--ink-2);
+  }
+
+  .route[data-state='required'] .route__status {
+    color: var(--ink);
+    font-weight: 560;
+  }
+
+  /* ------------------------------------------------------------------
+     Quote document: the one surface that is allowed to look like paper
+     on paper, because it is one.
+     ------------------------------------------------------------------ */
+  .doc {
+    position: relative;
+    padding: clamp(1.25rem, 3vw, 2.1rem);
+    background: var(--sheet);
+    box-shadow:
+      0 0 0 1px rgb(17 18 60 / 0.07),
+      0 1.2rem 2.4rem -1.4rem rgb(17 18 60 / 0.4),
+      0 0.2rem 0.5rem -0.2rem rgb(17 18 60 / 0.14);
+    margin-top: 0.5rem;
+  }
+
+  .doc::before {
+    content: '';
+    position: absolute;
+    left: clamp(1.25rem, 3vw, 2.1rem);
+    top: 0;
+    width: 3.4rem;
+    height: 0.5rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background: var(--magenta);
+  }
+
+  .doc__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem 2rem;
+    padding-top: 0.9rem;
+  }
+
+  .doc__kind {
+    font-size: 1.7rem;
+    font-weight: 600;
+    font-stretch: 112%;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .doc__meta {
+    display: flex;
+    gap: 1.4rem;
+    font-size: 0.66rem;
+  }
+
+  .doc__meta dt {
+    color: var(--ink-3);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .doc__lines {
+    width: 100%;
+    margin-top: 1.4rem;
+    border-collapse: collapse;
+    font-size: var(--step-small);
+  }
+
+  .doc__lines th,
+  .doc__lines td {
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+    vertical-align: baseline;
+    border-top: 1px solid var(--hair);
+  }
+
+  .doc__lines thead th {
+    border-top: 2px solid var(--navy);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .doc__lines .num {
+    text-align: right;
+    padding-right: 0;
+    white-space: nowrap;
+  }
+
+  .doc__lines td.mono {
+    font-size: 0.72rem;
+  }
+
+  .doc__desc {
+    display: block;
+    line-height: 1.3;
+  }
+
+  .doc__part {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--ink-3);
+  }
+
+  .doc__totals {
+    display: grid;
+    justify-content: end;
+    gap: 0.3rem;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--navy);
+  }
+
+  .doc__totals > div {
+    display: grid;
+    grid-template-columns: 8rem minmax(7rem, auto);
+    align-items: baseline;
+    font-size: var(--step-small);
+  }
+
+  .doc__totals dd {
+    text-align: right;
+  }
+
+  .doc__totals dd.mono {
+    font-size: 0.74rem;
+  }
+
+  .doc__grand {
+    margin-top: 0.35rem;
+    font-weight: 600;
+  }
+
+  .doc__grand dd {
+    font-size: 1.7rem;
+    font-stretch: 110%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .doc__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .doc__stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.8rem 0.4rem 0.55rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    font-stretch: 104%;
+    box-shadow: inset 0 0 0 1.5px var(--navy);
+    border-radius: 2rem;
+  }
+
+  .doc__stamp-dot {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: inset 0 0 0 1.5px var(--navy);
+    transition: background-color var(--t-med) linear;
+  }
+
+  .doc__stamp[data-state='pending'] .doc__stamp-dot {
+    background: var(--orange);
+  }
+
+  /* ------------------------------------------------------------------
+     Hand off: field mapping
+     ------------------------------------------------------------------ */
+  .map {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(2.5rem, 9vw, 6rem) minmax(0, 1fr);
+    margin-top: 0.5rem;
+  }
+
+  .map__col--from {
+    grid-column: 1;
+  }
+
+  .map__col--to {
+    grid-column: 3;
+  }
+
+  .map__col ul {
+    display: grid;
+  }
+
+  .map .label {
+    padding-block: 0.8rem 0.55rem;
+    border-top: 2px solid var(--navy);
+  }
+
+  .map li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--hair);
+    font-size: var(--step-small);
+    transition:
+      color var(--t-fast) linear,
+      box-shadow var(--t-fast) linear;
+  }
+
+  .map li b {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .map__col--to {
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  .map__wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .map__wires :global(path) {
+    fill: none;
+    stroke: var(--hair-strong);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    transition:
+      stroke var(--t-fast) linear,
+      stroke-width var(--t-fast) linear;
+  }
+
+  .map__wires :global(path.is-live) {
+    stroke: var(--magenta);
+    stroke-width: 2.5;
+  }
+
+  .map__wires :global(circle) {
+    fill: var(--paper);
+    stroke: var(--navy);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .map__wires :global(circle.is-live) {
+    fill: var(--magenta);
+    stroke: var(--magenta);
+  }
+
+  .map :global(li.is-live) {
+    box-shadow: inset 0 -2px 0 var(--magenta);
+  }
+
+  .map__note {
+    max-width: 36em;
+  }
+
+  @media (max-width: 30rem) {
+    .opt {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .opt legend {
+      float: none;
+      padding-top: 0;
+    }
+
+    .opt__choices,
+    .opt__reason {
+      grid-column: 1;
+    }
+
+    .levers {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .doc__meta {
+      gap: 1rem;
+    }
+  }
+</style>

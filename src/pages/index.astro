@@ -1,0 +1,144 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Rail from '../components/Rail.astro';
+import Story from '../components/Story.astro';
+import Practices from '../components/Practices.astro';
+import Engagements from '../components/Engagements.astro';
+import Staffing from '../components/Staffing.astro';
+import Delivery from '../components/Delivery.astro';
+import Brief from '../components/Brief.astro';
+import Footer from '../components/Footer.astro';
+import { company } from '../data/site';
+
+const title = 'Oracle CPQ, Oracle CX and Salesforce Consulting | ConPriQuo';
+const description =
+  'Oracle CPQ, Oracle CX and Salesforce consulting from Belagavi, India. Hire a project team or a contract specialist for implementation, BML and support.';
+
+const site = (Astro.site ?? new URL(company.url)).href.replace(/\/$/, '');
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const home = `${site}${base}/`;
+const organizationId = `${home}#organization`;
+
+/**
+ * Structured data. Every statement below is also visible on the page, and nothing is
+ * claimed that the company has not published: no ratings, awards, partner tiers,
+ * founding date or headcount.
+ */
+const service = (name: string, serviceType: string, text: string) => ({
+  '@type': 'Service',
+  name,
+  serviceType,
+  description: text,
+  provider: { '@id': organizationId },
+  areaServed: 'Worldwide',
+});
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': organizationId,
+      name: company.name,
+      alternateName: company.shortName,
+      url: home,
+      logo: `${home}brand/conpriquo-solutions-logo.png`,
+      image: `${home}og/conpriquo-solutions.png`,
+      description:
+        'ConPriQuo Solutions is an enterprise technology consulting and IT staffing company. It implements, integrates and supports Oracle CPQ, Oracle CX and Salesforce, and provides contract staffing and staff augmentation.',
+      email: company.email,
+      telephone: company.phoneDisplay,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: company.address.street,
+        addressLocality: company.address.locality,
+        addressRegion: company.address.region,
+        addressCountry: company.address.countryCode,
+      },
+      areaServed: 'Worldwide',
+      sameAs: [company.linkedin, company.instagram],
+      knowsAbout: [
+        'Oracle CPQ',
+        'Oracle CX',
+        'Salesforce',
+        'Configure, price, quote (CPQ)',
+        'BML',
+        'CRM and ERP integration',
+        'IT contract staffing',
+        'IT staff augmentation',
+      ],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        email: company.email,
+        telephone: company.phoneDisplay,
+        areaServed: 'Worldwide',
+      },
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Consulting and staffing services',
+        itemListElement: [
+          service(
+            'Oracle CPQ consulting',
+            'Oracle CPQ implementation, enhancement and application support',
+            'Product configuration with product models, attribute-driven BOMs, constraints and guided selling; pricing and commerce with BML and BMQL logic, discounting, approval rules and quote documents; integration with CRM, ERP and enterprise pricing systems; support after launch.',
+          ),
+          service(
+            'Oracle CX consulting',
+            'Oracle CX sales and service process consulting',
+            'Sales processes covering account, opportunity and handoff workflows; service processes covering service requests, routing and escalation; integration between Oracle CX and the systems that support fulfilment.',
+          ),
+          service(
+            'Salesforce consulting',
+            'Salesforce implementation and customization',
+            'Sales and service workflows with role-based access; customization and automation of business rules, approvals and handoffs; data migration planning; CPQ and ERP integration.',
+          ),
+          service(
+            'Specialized IT staffing',
+            'Contract staffing and staff augmentation',
+            'Contract staffing and staff augmentation for enterprise applications, engineering and integration, and cloud, data and operations roles, shortlisted through a four-step process: align, source, screen, coordinate.',
+          ),
+        ].map((item) => ({ '@type': 'Offer', itemOffered: item })),
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${home}#website`,
+      url: home,
+      name: company.name,
+      alternateName: company.shortName,
+      inLanguage: 'en',
+      publisher: { '@id': organizationId },
+    },
+    {
+      '@type': 'WebPage',
+      '@id': `${home}#webpage`,
+      url: home,
+      name: title,
+      description,
+      inLanguage: 'en',
+      isPartOf: { '@id': `${home}#website` },
+      about: { '@id': organizationId },
+      primaryImageOfPage: `${home}og/conpriquo-solutions.png`,
+    },
+  ],
+};
+---
+
+<Base title={title} description={description} structuredData={structuredData}>
+  <Header />
+  <Rail />
+  <main id="main">
+    <Story />
+    <Practices />
+    <Engagements />
+    <Staffing />
+    <Delivery />
+    <Brief />
+  </main>
+  <Footer />
+  <script>
+    import '../scripts/main.ts';
+  </script>
+</Base>

@@ -1,0 +1,528 @@
+---
+/**
+ * The enquiry mechanism. This is a static site with no server, so the composer does
+ * exactly what it says: it assembles a brief in the browser and hands it to the
+ * visitor's own email app, or to the clipboard. Nothing is transmitted by the page.
+ */
+import { company } from '../data/site';
+
+const platforms = ['Oracle CPQ', 'Oracle CX', 'Salesforce', 'Integration', 'Not sure yet'];
+const kinds = ['New implementation', 'Enhancement', 'Integration', 'Application support'];
+const engagement = ['Contract staffing', 'Staff augmentation', 'Not sure yet'];
+---
+
+<section class="brief" id="brief" aria-labelledby="brief-title" data-brief>
+  <div class="wrap brief__grid">
+    <div class="brief__intro">
+      <p class="tag"><span>Your brief</span></p>
+      <h2 class="h2" id="brief-title" data-lines>Tell us what you need. A paragraph is enough.</h2>
+      <p class="body" data-reveal>
+        Bring us a project to deliver or a skill requirement to fill. The more specific the brief, the more
+        useful our first reply will be.
+      </p>
+
+      <dl class="brief__direct" data-reveal>
+        <div>
+          <dt class="label">Email</dt>
+          <dd><a class="link" href={`mailto:${company.email}`}>{company.email}</a></dd>
+        </div>
+        <div>
+          <dt class="label">Phone</dt>
+          <dd><a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a></dd>
+        </div>
+        <div>
+          <dt class="label">Based in</dt>
+          <dd>{company.address.locality}, {company.address.region}, {company.address.country}. Working with clients globally.</dd>
+        </div>
+      </dl>
+    </div>
+
+    <form class="composer" data-composer novalidate data-reveal>
+      <fieldset class="composer__paths">
+        <legend class="visually-hidden">What do you need?</legend>
+        <label class="path">
+          <input type="radio" name="path" value="project" checked />
+          <span class="path__bar" aria-hidden="true"></span>
+          <span>A project to deliver</span>
+        </label>
+        <label class="path">
+          <input type="radio" name="path" value="staffing" />
+          <span class="path__dot" aria-hidden="true"></span>
+          <span>A skill requirement to fill</span>
+        </label>
+      </fieldset>
+
+      <!-- ============ project ============ -->
+      <div class="composer__fields" data-path-panel="project">
+        <fieldset class="field field--chips">
+          <legend class="label">Platform</legend>
+          <div class="chips">
+            {
+              platforms.map((name) => (
+                <label class="chip">
+                  <input type="checkbox" name="platform" value={name} />
+                  <span>{name}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+
+        <fieldset class="field field--chips">
+          <legend class="label">Kind of work</legend>
+          <div class="chips">
+            {
+              kinds.map((name) => (
+                <label class="chip">
+                  <input type="radio" name="kind" value={name} />
+                  <span>{name}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label class="label" for="brief-need">What needs to happen</label>
+          <textarea
+            id="brief-need"
+            name="need"
+            rows="4"
+            maxlength="1200"
+            placeholder="For example: our sellers quote configured equipment from spreadsheets, and approvals happen by email."
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label" for="brief-timing">Timing, if you know it</label>
+          <input id="brief-timing" name="timing" type="text" maxlength="120" autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- ============ staffing: these are the fields of the Align step ============ -->
+      <div class="composer__fields" data-path-panel="staffing" hidden>
+        <div class="field">
+          <label class="label" for="brief-role">Role and must-have skills</label>
+          <textarea
+            id="brief-role"
+            name="role"
+            rows="3"
+            maxlength="1200"
+            placeholder="For example: Oracle CPQ developer, strong BML, experience with ERP integration."
+          ></textarea>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="label" for="brief-count">How many people</label>
+            <input id="brief-count" name="count" type="number" min="1" max="50" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label class="label" for="brief-start">Start date</label>
+            <input id="brief-start" name="start" type="text" maxlength="60" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label class="label" for="brief-location">Location or time zone</label>
+            <input id="brief-location" name="location" type="text" maxlength="80" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="brief-duration">Duration</label>
+            <input id="brief-duration" name="duration" type="text" maxlength="60" autocomplete="off" />
+          </div>
+        </div>
+
+        <fieldset class="field field--chips">
+          <legend class="label">Engagement</legend>
+          <div class="chips">
+            {
+              engagement.map((name) => (
+                <label class="chip">
+                  <input type="radio" name="engagement" value={name} />
+                  <span>{name}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="field-row composer__who">
+        <div class="field">
+          <label class="label" for="brief-name">Your name</label>
+          <input id="brief-name" name="name" type="text" maxlength="80" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label class="label" for="brief-company">Company</label>
+          <input id="brief-company" name="company" type="text" maxlength="80" autocomplete="organization" />
+        </div>
+      </div>
+
+      <div class="composer__out">
+        <p class="label" id="brief-preview-label">The brief, as it will be written</p>
+        <pre class="composer__preview mono" data-preview aria-labelledby="brief-preview-label" tabindex="0"></pre>
+      </div>
+
+      <div class="composer__actions">
+        <a class="btn" href={`mailto:${company.email}`} data-send>Open in your email app</a>
+        <button class="btn btn--line" type="button" data-copy>Copy the brief</button>
+        <p class="composer__status" role="status" aria-live="polite" data-status></p>
+      </div>
+
+      <p class="small composer__truth">
+        This page sends nothing and stores nothing. The first button opens a draft in your own email app,
+        addressed to {company.email}, so the sent copy stays with you.
+      </p>
+    </form>
+
+    <noscript>
+      <p class="brief__noscript">
+        The brief composer needs JavaScript. You can reach us directly at
+        <a class="link" href={`mailto:${company.email}`}>{company.email}</a> or
+        <a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a>.
+      </p>
+    </noscript>
+  </div>
+</section>
+
+<script>
+  import { initBrief } from '../scripts/brief';
+  initBrief();
+</script>
+
+<style>
+  .brief {
+    padding-block: var(--section);
+  }
+
+  .brief__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    gap: clamp(2.5rem, 6vw, 7rem);
+    align-items: start;
+  }
+
+  .brief__intro {
+    display: grid;
+    gap: clamp(1.1rem, 2.4vh, 1.75rem);
+  }
+
+  @media (min-width: 64rem) {
+    .brief__intro {
+      position: sticky;
+      top: calc(var(--header-h) + 2.5rem);
+    }
+  }
+
+  .brief__direct {
+    display: grid;
+    margin-top: 1rem;
+    border-top: 2px solid var(--navy);
+  }
+
+  .brief__direct > div {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--hair);
+  }
+
+  .brief__direct > div:first-child {
+    border-top: 0;
+  }
+
+  .brief__direct dd {
+    font-size: var(--step-lead);
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .brief__direct > div:last-child dd {
+    font-size: var(--step-body);
+    font-weight: 400;
+    color: var(--ink-2);
+  }
+
+  /* ---- composer: a sheet, like the quote document earlier on the page ---- */
+  .composer {
+    position: relative;
+    display: grid;
+    gap: 1.5rem;
+    padding: clamp(1.25rem, 3.2vw, 2.5rem);
+    background: var(--sheet);
+    box-shadow:
+      0 0 0 1px rgb(17 18 60 / 0.07),
+      0 1.2rem 2.4rem -1.4rem rgb(17 18 60 / 0.4),
+      0 0.2rem 0.5rem -0.2rem rgb(17 18 60 / 0.14);
+  }
+
+  :global(html:not(.js)) .composer {
+    display: none;
+  }
+
+  .composer::before {
+    content: '';
+    position: absolute;
+    left: clamp(1.25rem, 3.2vw, 2.5rem);
+    top: 0;
+    width: 3.4rem;
+    height: 0.5rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+    background: var(--magenta);
+  }
+
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .composer__paths {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.6rem;
+    box-shadow: inset 0 0 0 1.5px var(--navy);
+    border-radius: 2px;
+  }
+
+  .path {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    padding: 0.7rem 1rem;
+    font-weight: 600;
+    font-stretch: 104%;
+    line-height: 1.2;
+    cursor: pointer;
+    transition:
+      background-color var(--t-fast) linear,
+      color var(--t-fast) linear;
+  }
+
+  .path input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .path:has(input:checked) {
+    background: var(--navy);
+    color: var(--paper);
+  }
+
+  .path:has(input:focus-visible) {
+    outline: 2px solid var(--navy);
+    outline-offset: 3px;
+  }
+
+  .path__bar,
+  .path__dot {
+    flex: none;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--hair-strong);
+    transition: background-color var(--t-fast) linear;
+  }
+
+  .path__bar {
+    width: 1.6rem;
+  }
+
+  .path__dot {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+  }
+
+  .path:has(input:checked) .path__bar {
+    background: var(--magenta);
+  }
+
+  .path:has(input:checked) .path__dot {
+    background: var(--cyan);
+  }
+
+  .composer__fields {
+    display: grid;
+    gap: 1.35rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.35rem 1.25rem;
+  }
+
+  .field legend {
+    padding: 0 0 0.5rem;
+  }
+
+  .field input[type='text'],
+  .field input[type='number'],
+  .field textarea {
+    width: 100%;
+    padding: 0.7rem 0.8rem;
+    background: var(--white);
+    border: 0;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    font-size: 1.02rem;
+    line-height: 1.45;
+    transition: box-shadow var(--t-fast) linear;
+  }
+
+  .field textarea {
+    resize: vertical;
+    min-height: 5.5rem;
+  }
+
+  .field input::placeholder,
+  .field textarea::placeholder {
+    color: var(--ink-3);
+    opacity: 1;
+  }
+
+  .field input:hover,
+  .field textarea:hover {
+    box-shadow: inset 0 0 0 1px var(--navy);
+  }
+
+  .field input:focus-visible,
+  .field textarea:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--navy);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.4rem 0.95rem;
+    font-size: 0.98rem;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    border-radius: 2px;
+    cursor: pointer;
+    transition:
+      background-color var(--t-fast) linear,
+      color var(--t-fast) linear,
+      box-shadow var(--t-fast) linear;
+  }
+
+  .chip input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .chip:hover {
+    box-shadow: inset 0 0 0 1px var(--navy);
+  }
+
+  .chip:has(input:checked) {
+    background: var(--navy);
+    color: var(--paper);
+    box-shadow: none;
+  }
+
+  .chip:has(input:focus-visible) {
+    outline: 2px solid var(--navy);
+    outline-offset: 2px;
+  }
+
+  .composer__who {
+    padding-top: 1.35rem;
+    border-top: 1px solid var(--hair);
+  }
+
+  .composer__out {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .composer__preview {
+    max-height: 17rem;
+    margin: 0;
+    padding: 1rem 1.1rem;
+    overflow: auto;
+    background: var(--paper);
+    box-shadow: inset 0 2px 0 var(--navy);
+    font-size: 0.74rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+  }
+
+  .composer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .composer__status {
+    flex-basis: 100%;
+    min-height: 1.4em;
+    font-size: var(--step-small);
+    font-weight: 560;
+    color: var(--ink);
+  }
+
+  .composer__truth {
+    max-width: 38em;
+  }
+
+  .brief__noscript {
+    padding: 1.25rem;
+    background: var(--sheet);
+    box-shadow: inset 0 2px 0 var(--navy);
+  }
+
+  @media (max-width: 63.99rem) {
+    .brief__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 34rem) {
+    .composer__paths,
+    .field-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .brief__direct > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.2rem;
+    }
+  }
+</style>

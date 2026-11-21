@@ -1,0 +1,117 @@
+---
+/**
+ * In-page chapter rail. Unlike the planned-pages list in the header, these are real
+ * anchors: the working navigation for the homepage itself. The marker is the logo's
+ * bar, lengthening beside the chapter in view.
+ */
+import { chapters } from '../data/site';
+---
+
+<nav class="rail" aria-label="On this page" data-rail>
+  <ul>
+    {
+      chapters.map((chapter) => (
+        <li>
+          <a href={`#${chapter.id}`}>
+            <span class="rail__mark" aria-hidden="true" />
+            <span class="rail__label">{chapter.label}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .rail {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    z-index: 30;
+    transform: translateY(-50%);
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-med) linear;
+  }
+
+  .rail.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .rail ul {
+    display: grid;
+  }
+
+  .rail a {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    height: 1.5rem;
+    padding-left: 1.1rem;
+    text-decoration: none;
+  }
+
+  .rail__mark {
+    width: 0.45rem;
+    height: 0.36rem;
+    border-radius: 0.4rem;
+    background: var(--hair-strong);
+    transition:
+      width var(--t-med) var(--ease-out),
+      background-color var(--t-med) linear;
+  }
+
+  .rail__label {
+    padding: 0.2rem 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-stretch: 94%;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--ink);
+    background: var(--paper);
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    opacity: 0;
+    transform: translateX(-0.3rem);
+    transition:
+      opacity var(--t-fast) linear,
+      transform var(--t-med) var(--ease-out);
+  }
+
+  .rail a:hover .rail__label,
+  .rail a:focus-visible .rail__label {
+    opacity: 1;
+    transform: none;
+  }
+
+  .rail a:hover .rail__mark {
+    background: var(--navy);
+    width: 0.9rem;
+  }
+
+  .rail :global(a.is-current) .rail__mark {
+    width: 1.5rem;
+    background: var(--magenta);
+  }
+
+  .rail.is-on-navy .rail__mark {
+    background: var(--hair-on-navy);
+  }
+
+  .rail.is-on-navy a:hover .rail__mark {
+    background: var(--on-navy);
+  }
+
+  .rail.is-on-navy :global(a.is-current) .rail__mark {
+    background: var(--magenta);
+  }
+
+  @media (min-width: 80rem) and (min-height: 34rem) {
+    .rail {
+      display: block;
+    }
+  }
+</style>

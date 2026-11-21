@@ -1,0 +1,223 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/brand/conpriquo-solutions-logo.png';
+import { chapters, company, plannedPages } from '../data/site';
+---
+
+<header class="site-header" data-header>
+  <div class="site-header__inner wrap">
+    <a class="site-header__logo" href="#top" aria-label="ConPriQuo Solutions, back to top">
+      <Image
+        src={logo}
+        alt="ConPriQuo Solutions"
+        widths={[176, 264, 352, 528]}
+        sizes="(max-width: 48rem) 132px, 176px"
+        loading="eager"
+        fetchpriority="high"
+        format="png"
+      />
+    </a>
+
+    <!-- Planned pages. Only the homepage exists in this phase, so these are text, not links. -->
+    <ul class="site-header__pages" aria-label="Site pages, in preparation">
+      {plannedPages.primary.map((name) => <li>{name}</li>)}
+    </ul>
+
+    <div class="site-header__actions">
+      <a class="btn btn--small" href="#brief">Start a brief</a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+        <span class="menu-toggle__bars" aria-hidden="true"><i></i><i></i></span>
+        <span class="visually-hidden">Menu</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="site-menu" id="site-menu" data-menu hidden>
+    <div class="site-menu__inner wrap">
+      <nav aria-label="On this page">
+        <p class="label">On this page</p>
+        <ul class="site-menu__chapters">
+          {chapters.map((chapter) => <li><a href={`#${chapter.id}`} data-menu-link>{chapter.label}</a></li>)}
+        </ul>
+      </nav>
+      <div>
+        <p class="label">Site pages, in preparation</p>
+        <ul class="site-menu__pages">
+          {plannedPages.primary.map((name) => <li>{name}</li>)}
+        </ul>
+      </div>
+      <div class="site-menu__contact">
+        <p class="label">Talk to us</p>
+        <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
+        <a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--paper);
+    transition: box-shadow var(--t-med) linear;
+  }
+
+  .site-header.is-scrolled {
+    box-shadow: 0 1px 0 var(--hair);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 3vw, 3rem);
+    height: var(--header-h);
+  }
+
+  .site-header__logo {
+    flex: none;
+    display: block;
+    width: 11rem;
+    margin-left: -0.1rem;
+  }
+
+  .site-header__logo :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .site-header__pages {
+    display: flex;
+    gap: clamp(1rem, 2.1vw, 2.2rem);
+    margin-left: auto;
+    font-size: 0.98rem;
+    font-weight: 500;
+    font-stretch: 102%;
+    color: var(--ink-2);
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .menu-toggle {
+    display: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+  }
+
+  .menu-toggle__bars {
+    display: grid;
+    gap: 0.4rem;
+    width: 1.5rem;
+  }
+
+  .menu-toggle__bars i {
+    display: block;
+    height: 0.2rem;
+    border-radius: 0.2rem;
+    background: var(--navy);
+    transition:
+      transform var(--t-med) var(--ease-out),
+      width var(--t-med) var(--ease-out),
+      background-color var(--t-fast) linear;
+  }
+
+  .menu-toggle__bars i:last-child {
+    width: 62%;
+    background: var(--magenta);
+  }
+
+  .menu-toggle[aria-expanded='true'] .menu-toggle__bars i:first-child {
+    transform: translateY(0.3rem) rotate(45deg);
+  }
+
+  .menu-toggle[aria-expanded='true'] .menu-toggle__bars i:last-child {
+    width: 100%;
+    transform: translateY(-0.3rem) rotate(-45deg);
+  }
+
+  .site-menu {
+    position: absolute;
+    inset: 100% 0 auto 0;
+    max-height: calc(100dvh - var(--header-h));
+    overflow-y: auto;
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 var(--hair),
+      0 1.5rem 2.5rem -1.5rem rgb(17 18 60 / 0.28);
+  }
+
+  .site-menu__inner {
+    display: grid;
+    gap: 2rem;
+    padding-block: 1.5rem 2.25rem;
+  }
+
+  .site-menu .label {
+    margin-bottom: 0.8rem;
+  }
+
+  .site-menu__chapters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.1rem 1.25rem;
+  }
+
+  .site-menu__chapters a {
+    display: block;
+    padding: 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    font-stretch: 108%;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+  }
+
+  .site-menu__pages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    color: var(--ink-2);
+  }
+
+  .site-menu__contact {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+  }
+
+  @media (max-width: 68rem) {
+    .site-header__pages {
+      display: none;
+    }
+
+    .site-header__actions {
+      margin-left: auto;
+    }
+
+    .menu-toggle {
+      display: inline-flex;
+    }
+  }
+
+  @media (min-width: 68.01rem) {
+    .site-menu {
+      display: none;
+    }
+  }
+
+  @media (max-width: 47.99rem) {
+    .site-header__logo {
+      width: 8.25rem;
+    }
+  }
+</style>

@@ -1,0 +1,426 @@
+---
+/**
+ * The second way to work with ConPriQuo. The logo's dots take over as the
+ * protagonists: people. A second sticky stage follows the shortlist process,
+ * Align, Source, Screen, Coordinate, exactly as the company describes it.
+ */
+import teamPoster from '../assets/posters/team-3.webp';
+
+const families = [
+  {
+    id: 'apps',
+    name: 'Enterprise applications',
+    detail: 'Oracle CPQ consultants and BML developers, Oracle CX, Salesforce, ERP and CRM specialists, technical or functional.',
+  },
+  {
+    id: 'engineering',
+    name: 'Engineering and integration',
+    detail: 'Application developers, middleware specialists, API engineers and testers.',
+  },
+  {
+    id: 'cloud',
+    name: 'Cloud, data and operations',
+    detail: 'Cloud and DevOps engineers, data specialists and production support.',
+  },
+];
+
+const steps = [
+  {
+    id: 'align',
+    name: 'Align',
+    text: 'We agree the must-have skills, the scope of the role, location, start date and commercial terms before anyone is contacted.',
+  },
+  {
+    id: 'source',
+    name: 'Source',
+    text: 'We look for people with relevant project experience, then confirm that they are interested and available.',
+  },
+  {
+    id: 'screen',
+    name: 'Screen',
+    text: 'We assess hands-on experience against the must-haves and flag the gaps worth probing at interview.',
+  },
+  {
+    id: 'coordinate',
+    name: 'Coordinate',
+    text: 'You receive a focused shortlist. We coordinate interviews, feedback and onboarding.',
+  },
+];
+---
+
+<section class="staffing" id="staffing" aria-labelledby="staffing-title" data-staffing>
+  <div class="wrap">
+    <div class="staffing__intro">
+      <div class="staffing__lede">
+        <p class="tag"><span>Staffing</span></p>
+        <h2 class="h2" id="staffing-title" data-lines>Sometimes the gap is not a project. It is a person.</h2>
+      </div>
+      <div class="staffing__body">
+        <p class="lead" data-reveal>
+          Programmes stall for want of one BML developer, one integration engineer, one Salesforce administrator
+          who has done it before. We provide contract staffing and staff augmentation to enterprises and delivery
+          partners, and we build every shortlist against the role you actually need filled. Choose a project when
+          you want an outcome delivered. Choose a specialist when the work is yours to direct.
+        </p>
+      </div>
+    </div>
+
+    <fieldset class="families" data-families data-reveal>
+      <legend class="label">Skills we place. Choose one to see a shortlist form.</legend>
+      <div class="families__list">
+        {
+          families.map((family, index) => (
+            <label class="family" data-family={family.id}>
+              <input type="radio" name="family" value={family.id} checked={index === 0} />
+              <span class="family__dot" aria-hidden="true" />
+              <span class="family__text">
+                <span class="family__name">{family.name}</span>
+                <span class="family__detail">{family.detail}</span>
+              </span>
+            </label>
+          ))
+        }
+      </div>
+      <p class="families__note">
+        <span class="family__dot family__dot--navy" aria-hidden="true"></span>
+        <span>
+          <b>Project ramp-ups.</b> When a team has to grow quickly, shortlists are prioritised by skill fit,
+          availability and start date.
+        </span>
+      </p>
+    </fieldset>
+
+    <div class="shortlist">
+      <div class="shortlist__stage" aria-hidden="true">
+        <div class="stage" data-stage="team">
+          <div class="stage__slot" data-team-slot>
+            <noscript><img class="stage-poster" src={teamPoster.src} alt="" width={teamPoster.width} height={teamPoster.height} /></noscript>
+          </div>
+          <div class="stage__labels" data-team-labels></div>
+          <p class="stage__caption mono" data-team-caption>Align</p>
+        </div>
+      </div>
+
+      <ol class="shortlist__steps" aria-label="How we build a shortlist">
+        {
+          steps.map((step, index) => (
+            <li class="phase" data-phase={step.id} data-index={index}>
+              <span class="phase__mark" aria-hidden="true" />
+              <h3 class="phase__name">{step.name}</h3>
+              <p class="phase__text">{step.text}</p>
+            </li>
+          ))
+        }
+        <li class="shortlist__cta">
+          <a class="btn" href="#brief" data-brief-path="staffing">Send a role requirement</a>
+          <p class="small">The form that follows is the Align step. Fill it in and the shortlist has started.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .staffing {
+    padding-block: var(--section) calc(var(--section) * 0.7);
+  }
+
+  .staffing__intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(1.5rem, 5vw, 6rem);
+    align-items: end;
+  }
+
+  .staffing__lede {
+    display: grid;
+    gap: clamp(1.1rem, 2.4vh, 1.75rem);
+  }
+
+  /* ---- skill families: three of the logo's dots, plus the navy one for ramp-ups ---- */
+  .families {
+    margin: clamp(3rem, 6vw, 5rem) 0 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .families legend {
+    padding: 0 0 0.9rem;
+  }
+
+  .families__list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 2px solid var(--navy);
+  }
+
+  .family {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    padding: 1.4rem 1.5rem 1.6rem 0;
+    cursor: pointer;
+    transition: background-color var(--t-fast) linear;
+  }
+
+  .family + .family {
+    padding-left: 1.5rem;
+    box-shadow: inset 1px 0 0 var(--hair);
+  }
+
+  .family input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: inherit;
+  }
+
+  .family:has(input:focus-visible) {
+    outline: 2px solid var(--navy);
+    outline-offset: -2px;
+  }
+
+  .family__dot {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.1rem;
+    border-radius: 50%;
+    background: var(--dot, var(--navy));
+    box-shadow: inset 0 0 0 1.5px var(--navy);
+    transform: scale(0.62);
+    transition: transform var(--t-med) var(--ease-seat);
+  }
+
+  .family[data-family='apps'] {
+    --dot: var(--magenta);
+  }
+  .family[data-family='engineering'] {
+    --dot: var(--cyan);
+  }
+  .family[data-family='cloud'] {
+    --dot: var(--orange);
+  }
+
+  .family:has(input:checked) .family__dot {
+    transform: scale(1);
+  }
+
+  .family__text {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .family__name {
+    font-size: var(--step-h3);
+    font-weight: 600;
+    font-stretch: 106%;
+    letter-spacing: -0.018em;
+    line-height: 1.12;
+    color: var(--ink-3);
+    transition: color var(--t-fast) linear;
+  }
+
+  .family:hover .family__name,
+  .family:has(input:checked) .family__name {
+    color: var(--ink);
+  }
+
+  .family__detail {
+    font-size: var(--step-small);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  .families__note {
+    display: flex;
+    gap: 1rem;
+    align-items: start;
+    padding-top: 1.3rem;
+    border-top: 1px solid var(--hair);
+    font-size: var(--step-small);
+    color: var(--ink-2);
+  }
+
+  .families__note > span:last-child {
+    max-width: 42rem;
+  }
+
+  .family__dot--navy {
+    --dot: var(--navy);
+    transform: scale(0.62);
+  }
+
+  .families__note b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ---- shortlist: sticky stage and the four steps ---- */
+  .shortlist {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .shortlist__stage {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 5;
+    height: clamp(13rem, 36svh, 20rem);
+    margin-inline: calc(var(--gutter) * -1);
+    background: var(--paper);
+    box-shadow: 0 1px 0 var(--hair);
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: clip;
+  }
+
+  .stage__slot,
+  .stage__labels {
+    position: absolute;
+    inset: 0;
+  }
+
+  .stage__labels {
+    pointer-events: none;
+  }
+
+  .stage__slot :global(.stage-canvas) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 700ms linear;
+  }
+
+  .stage__slot :global(.stage-canvas.is-ready) {
+    opacity: 1;
+  }
+
+  .stage__caption {
+    position: absolute;
+    left: var(--gutter);
+    bottom: 0.8rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  .shortlist__steps {
+    display: grid;
+  }
+
+  .phase {
+    position: relative;
+    display: grid;
+    gap: 0.6rem;
+    align-content: center;
+    padding: clamp(2.25rem, 7vh, 4rem) 0 clamp(2.25rem, 7vh, 4rem) 3.4rem;
+  }
+
+  /* Phases out of focus step back to the lighter ink, which still meets AA contrast.
+     The magenta mark, not opacity, says which phase the scene is showing. */
+  .phase__name,
+  .phase__text {
+    transition: color var(--t-med) linear;
+  }
+
+  :global(.js) .phase:not(.is-current) .phase__name,
+  :global(.js) .phase:not(.is-current) .phase__text {
+    color: var(--ink-3);
+  }
+
+  .phase__mark {
+    position: absolute;
+    left: 0;
+    top: calc(clamp(2.25rem, 7vh, 4rem) + 0.55rem);
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--hair-strong);
+    transition:
+      width var(--t-med) var(--ease-out),
+      background-color var(--t-med) linear;
+  }
+
+  .phase.is-current .phase__mark {
+    width: 2.1rem;
+    background: var(--magenta);
+  }
+
+  .phase__name {
+    font-size: clamp(1.9rem, 1.3rem + 2.4vw, 3.2rem);
+    font-weight: 600;
+    font-stretch: 112%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .phase__text {
+    max-width: 30em;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+
+  .shortlist__cta {
+    display: grid;
+    gap: 0.9rem;
+    justify-items: start;
+    padding: 1rem 0 0 3.4rem;
+  }
+
+  @media (min-width: 64rem) {
+    .shortlist {
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      column-gap: clamp(2rem, 4vw, 5.5rem);
+    }
+
+    .shortlist__stage {
+      height: calc(100svh - var(--header-h));
+      margin-inline: calc(var(--gutter) * -1) 0;
+      background: none;
+      box-shadow: none;
+      z-index: 1;
+    }
+
+    .stage__caption {
+      bottom: 1.5rem;
+    }
+
+    .phase {
+      min-height: 52svh;
+    }
+
+    .shortlist__steps {
+      padding-block: 12svh 18svh;
+    }
+  }
+
+  @media (max-width: 60rem) {
+    .staffing__intro {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .families__list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .family + .family {
+      padding-left: 0;
+      box-shadow: inset 0 1px 0 var(--hair);
+    }
+  }
+</style>

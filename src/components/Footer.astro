@@ -1,0 +1,193 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/brand/conpriquo-solutions-logo.png';
+import { company, plannedPages } from '../data/site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap">
+    <p class="footer__name" aria-label="Configure. Price. Quote.">
+      <span><b>Con</b>figure.</span>
+      <span><b>Pri</b>ce.</span>
+      <span><b>Quo</b>te.</span>
+    </p>
+
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a class="footer__logo" href="#top" aria-label="ConPriQuo Solutions, back to top">
+          <Image src={logo} alt="ConPriQuo Solutions" widths={[240, 360, 480, 720]} sizes="240px" loading="lazy" format="png" />
+        </a>
+        <p class="footer__about">
+          {company.name} is an enterprise technology consulting and IT staffing company. We implement, integrate
+          and support Oracle CPQ, Oracle CX and Salesforce, and provide contract staffing and staff augmentation.
+        </p>
+      </div>
+
+      <!-- Planned pages. Text only until those pages exist. -->
+      <div class="footer__pages" aria-label="Site pages, in preparation">
+        {
+          plannedPages.footer.map((group) => (
+            <div class="footer__group">
+              <p class="label">{group.heading}</p>
+              <ul>
+                {group.items.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+
+      <address class="footer__contact">
+        <p class="label">Contact</p>
+        <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
+        <a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a>
+        <p class="footer__address">
+          {company.address.street}<br />
+          {company.address.locality}, {company.address.region}<br />
+          {company.address.country}
+        </p>
+        <p class="footer__social">
+          <a class="link" href={company.linkedin} rel="noopener" target="_blank">LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a>
+          <a class="link" href={company.instagram} rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (opens in a new tab)</span></a>
+        </p>
+      </address>
+    </div>
+
+    <div class="footer__legal">
+      <p>&copy; {year} {company.name}. All rights reserved.</p>
+      <p>
+        Oracle is a registered trademark of Oracle and/or its affiliates. Salesforce is a trademark of Salesforce,
+        Inc. Other names may be trademarks of their respective owners. The HX-6 handling unit shown on this page is
+        a fictional product used for illustration.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    padding-block: clamp(4rem, 9vw, 8rem) 2.5rem;
+    background: var(--paper);
+  }
+
+  /* The name, once more, as the last thing on the page. */
+  .footer__name {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.32em;
+    font-size: clamp(2.6rem, 0.6rem + 9.6vw, 10.5rem);
+    font-weight: 300;
+    font-stretch: 118%;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+    color: var(--ink-3);
+  }
+
+  .footer__name b {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .footer__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 5.5rem);
+    margin-top: clamp(3rem, 7vw, 6rem);
+    padding-top: clamp(2rem, 4vw, 3.5rem);
+    border-top: 2px solid var(--navy);
+    align-items: start;
+  }
+
+  .footer__logo {
+    display: block;
+    width: 15rem;
+    max-width: 100%;
+    margin-left: -0.15rem;
+  }
+
+  .footer__logo :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .footer__about {
+    max-width: 26em;
+    margin-top: 1.5rem;
+    font-size: var(--step-small);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  .footer__pages {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem 1.5rem;
+  }
+
+  .footer .label {
+    margin-bottom: 0.9rem;
+  }
+
+  .footer__group ul {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--ink-2);
+    cursor: default;
+  }
+
+  .footer__contact {
+    display: grid;
+    gap: 0.4rem;
+    justify-items: start;
+    font-style: normal;
+  }
+
+  .footer__contact > a {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  .footer__address {
+    margin-top: 0.8rem;
+    font-size: var(--step-small);
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+
+  .footer__social {
+    display: flex;
+    gap: 1.25rem;
+    margin-top: 0.8rem;
+    font-size: var(--step-small);
+  }
+
+  .footer__legal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    gap: 0.75rem 3rem;
+    margin-top: clamp(3rem, 6vw, 5rem);
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--hair);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--ink-3);
+  }
+
+  @media (max-width: 60rem) {
+    .footer__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .footer__legal {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .footer__pages {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
