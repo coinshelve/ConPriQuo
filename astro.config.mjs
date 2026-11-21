@@ -7,9 +7,32 @@ import sitemap from '@astrojs/sitemap';
  * (the default) or for a sub-path host such as a GitHub Pages project site:
  *
  *   SITE_URL=https://coinshelve.github.io SITE_BASE=/ConPriQuo npm run build
+ *
+ * SITE_BASE may be written "ConPriQuo", "/ConPriQuo" or "/ConPriQuo/". Any build that is
+ * not the production origin at "/" is marked noindex by the layout.
  */
 const site = process.env.SITE_URL || 'https://conpriquo-solutions.in';
-const base = process.env.SITE_BASE || '/';
+const base = normaliseBase(process.env.SITE_BASE);
+
+/**
+ * Returns the base as "/" or "/segment" with no trailing slash, whichever way it was typed.
+ * @param {string | undefined} value
+ */
+function normaliseBase(value) {
+  const raw = (value ?? '').trim();
+  // Git Bash on Windows rewrites an argument that starts with a slash into a drive
+  // path ("/ConPriQuo" arrives as "C:/Program Files/Git/ConPriQuo"). Building with that
+  // would put every asset under a nonsense path, so stop with an explanation instead.
+  if (raw.includes(':')) {
+    throw new Error(
+      `SITE_BASE must be a URL path such as "/ConPriQuo", but it is "${raw}". ` +
+        'Git Bash on Windows turns a leading slash into a drive path. ' +
+        'Write it without the leading slash (SITE_BASE=ConPriQuo) or set MSYS_NO_PATHCONV=1.',
+    );
+  }
+  const segments = raw.split('/').filter(Boolean);
+  return segments.length ? `/${segments.join('/')}` : '/';
+}
 
 export default defineConfig({
   site,

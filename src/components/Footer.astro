@@ -7,72 +7,79 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="footer">
-  <div class="wrap">
-    <p class="footer__name" aria-label="Configure. Price. Quote.">
-      <span><b>Con</b>figure.</span>
-      <span><b>Pri</b>ce.</span>
-      <span><b>Quo</b>te.</span>
+  <!-- The name, once more, on navy: the three words it is made of. -->
+  <div class="footer__name-band">
+    <p class="footer__name wrap">
+      <span class="visually-hidden">Configure. Price. Quote.</span>
+      <span aria-hidden="true"><b>Con</b>figure.</span>
+      <span aria-hidden="true"><b>Pri</b>ce.</span>
+      <span aria-hidden="true"><b>Quo</b>te.</span>
     </p>
+  </div>
 
-    <div class="footer__grid">
-      <div class="footer__brand">
-        <a class="footer__logo" href="#top" aria-label="ConPriQuo Solutions, back to top">
-          <Image src={logo} alt="ConPriQuo Solutions" widths={[240, 360, 480, 720]} sizes="240px" loading="lazy" format="png" />
-        </a>
-        <p class="footer__about">
-          {company.name} is an enterprise technology consulting and IT staffing company. We implement, integrate
-          and support Oracle CPQ, Oracle CX and Salesforce, and provide contract staffing and staff augmentation.
-        </p>
+  <!-- The logo needs a light ground, so the footer itself is light. -->
+  <div class="footer__sheet theme-light">
+    <div class="wrap">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <a class="footer__logo" href="#top" aria-label="ConPriQuo Solutions, back to top">
+            <Image src={logo} alt="ConPriQuo Solutions" widths={[240, 360, 480, 720]} sizes="240px" loading="lazy" format="png" />
+          </a>
+          <p class="footer__about">
+            Oracle CPQ, Oracle CX and Salesforce consulting and specialized IT staffing. Based in Belagavi, India,
+            serving clients globally.
+          </p>
+        </div>
+
+        <!-- Planned pages. Text only until those pages exist, and labelled as such. -->
+        <div class="footer__pages" role="group" aria-labelledby="footer-pages-label">
+          <p class="footer__soon" id="footer-pages-label">Pages in preparation</p>
+          {
+            plannedPages.footer.map((group) => (
+              <div class="footer__group">
+                <p class="label">{group.heading}</p>
+                <ul>
+                  {group.items.map((item) => <li>{item}</li>)}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+
+        <address class="footer__contact">
+          <p class="label">Contact</p>
+          <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
+          <a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a>
+          <p class="footer__address">
+            {company.address.street}<br />
+            {company.address.locality}, {company.address.region}<br />
+            {company.address.country}
+          </p>
+          <p class="footer__social">
+            <a class="link" href={company.linkedin} rel="noopener" target="_blank">LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a>
+            <a class="link" href={company.instagram} rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (opens in a new tab)</span></a>
+          </p>
+        </address>
       </div>
 
-      <!-- Planned pages. Text only until those pages exist. -->
-      <div class="footer__pages" aria-label="Site pages, in preparation">
-        {
-          plannedPages.footer.map((group) => (
-            <div class="footer__group">
-              <p class="label">{group.heading}</p>
-              <ul>
-                {group.items.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-          ))
-        }
+      <div class="footer__legal">
+        <p>&copy; {year} {company.name}. All rights reserved.</p>
+        <p>
+          Oracle is a registered trademark of Oracle and/or its affiliates. Salesforce is a trademark of Salesforce,
+          Inc. Other names may be trademarks of their respective owners. The HX-6 handling unit on this page is
+          fictional.
+        </p>
       </div>
-
-      <address class="footer__contact">
-        <p class="label">Contact</p>
-        <a class="link" href={`mailto:${company.email}`}>{company.email}</a>
-        <a class="link" href={`tel:${company.phoneHref}`}>{company.phoneDisplay}</a>
-        <p class="footer__address">
-          {company.address.street}<br />
-          {company.address.locality}, {company.address.region}<br />
-          {company.address.country}
-        </p>
-        <p class="footer__social">
-          <a class="link" href={company.linkedin} rel="noopener" target="_blank">LinkedIn<span class="visually-hidden"> (opens in a new tab)</span></a>
-          <a class="link" href={company.instagram} rel="noopener" target="_blank">Instagram<span class="visually-hidden"> (opens in a new tab)</span></a>
-        </p>
-      </address>
-    </div>
-
-    <div class="footer__legal">
-      <p>&copy; {year} {company.name}. All rights reserved.</p>
-      <p>
-        Oracle is a registered trademark of Oracle and/or its affiliates. Salesforce is a trademark of Salesforce,
-        Inc. Other names may be trademarks of their respective owners. The HX-6 handling unit shown on this page is
-        a fictional product used for illustration.
-      </p>
     </div>
   </div>
 </footer>
 
 <style>
-  .footer {
-    padding-block: clamp(4rem, 9vw, 8rem) 2.5rem;
-    background: var(--paper);
+  .footer__name-band {
+    background: var(--ground-2);
+    padding-block: clamp(3.5rem, 8vw, 7rem) clamp(2.5rem, 5vw, 4.5rem);
   }
 
-  /* The name, once more, as the last thing on the page. */
   .footer__name {
     display: flex;
     flex-wrap: wrap;
@@ -90,13 +97,15 @@ const year = new Date().getFullYear();
     color: var(--ink);
   }
 
+  .footer__sheet {
+    background: var(--white);
+    padding-block: clamp(2.5rem, 5vw, 4rem) 2.25rem;
+  }
+
   .footer__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.6fr) minmax(0, 1fr);
-    gap: clamp(2rem, 5vw, 5.5rem);
-    margin-top: clamp(3rem, 7vw, 6rem);
-    padding-top: clamp(2rem, 4vw, 3.5rem);
-    border-top: 2px solid var(--navy);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.9fr) minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 4.5rem);
     align-items: start;
   }
 
@@ -113,8 +122,8 @@ const year = new Date().getFullYear();
   }
 
   .footer__about {
-    max-width: 26em;
-    margin-top: 1.5rem;
+    max-width: 24em;
+    margin-top: 1.4rem;
     font-size: var(--step-small);
     line-height: 1.55;
     color: var(--ink-2);
@@ -123,18 +132,39 @@ const year = new Date().getFullYear();
   .footer__pages {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 2rem 1.5rem;
+    gap: 1.4rem 1.5rem;
   }
 
-  .footer .label {
+  .footer__sheet .label {
     margin-bottom: 0.9rem;
+  }
+
+  .footer__soon {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding: 0.22rem 0.5rem 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-stretch: 96%;
+    letter-spacing: 0.09em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    border-radius: 2px;
   }
 
   .footer__group ul {
     display: grid;
     gap: 0.5rem;
-    color: var(--ink-2);
+    color: var(--ink-3);
     cursor: default;
+  }
+
+  @media (min-width: 60.01rem) {
+    .footer__group li {
+      white-space: nowrap;
+    }
   }
 
   .footer__contact {
@@ -167,7 +197,7 @@ const year = new Date().getFullYear();
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
     gap: 0.75rem 3rem;
-    margin-top: clamp(3rem, 6vw, 5rem);
+    margin-top: clamp(2.5rem, 5vw, 4rem);
     padding-top: 1.25rem;
     border-top: 1px solid var(--hair);
     font-size: 0.82rem;

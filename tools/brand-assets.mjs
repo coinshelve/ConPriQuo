@@ -18,7 +18,9 @@ import sharp from 'sharp';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = resolve(root, 'src/assets/brand/conpriquo-solutions-logo.png');
 const outDir = resolve(root, 'public');
-const PAPER = { r: 0xf4, g: 0xf1, b: 0xea, alpha: 1 };
+// The mark is navy and magenta, so wherever an icon needs a solid ground it is white,
+// as in the site header.
+const WHITE = { r: 0xff, g: 0xff, b: 0xff, alpha: 1 };
 
 const { data, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 const { width, height, channels } = info;
@@ -112,8 +114,8 @@ write('favicon.ico', ico([
 ]));
 write('icons/icon-192.png', await square(192, 0.1));
 write('icons/icon-512.png', await square(512, 0.1));
-write('icons/icon-maskable-512.png', await square(512, 0.2, PAPER));
-write('icons/apple-touch-icon.png', await square(180, 0.14, PAPER));
+write('icons/icon-maskable-512.png', await square(512, 0.2, WHITE));
+write('icons/apple-touch-icon.png', await square(180, 0.14, WHITE));
 
 const manifest = {
   name: 'ConPriQuo Solutions',
@@ -122,8 +124,9 @@ const manifest = {
   start_url: '.',
   scope: '.',
   display: 'browser',
-  background_color: '#f4f1ea',
-  theme_color: '#f4f1ea',
+  // the page ground is the logo's navy; the browser chrome matches the white header
+  background_color: '#11123c',
+  theme_color: '#ffffff',
   icons: [
     { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

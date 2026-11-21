@@ -16,50 +16,46 @@ const practices = [
   {
     id: 'cpq',
     name: 'Oracle CPQ',
-    scope: 'Implementation, enhancements and application support for quoting on complex products and pricing.',
     stations: ['quote', 'order'],
     lines: [
-      ['Product configuration', 'Product models, attribute-driven BOMs, constraints and guided selling.'],
-      ['Pricing and commerce', 'BML and BMQL logic, discounting, approval rules and quote documents.'],
-      ['Enterprise integration', 'Oracle CPQ connected to CRM, ERP and enterprise pricing systems.'],
-      ['Support after launch', 'Production troubleshooting, performance tuning and enhancement releases.'],
+      ['Product configuration', 'Product models, bills of materials, constraints and guided selling.'],
+      ['Pricing and commerce', 'BML and BMQL logic, discounting, approvals and quote documents.'],
+      ['Integration and support', 'Oracle CPQ connected to CRM and ERP, then supported in production.'],
     ],
   },
   {
     id: 'cx',
     name: 'Oracle CX',
-    scope: 'Sales and service workflows designed and improved across the customer lifecycle.',
     stations: ['opportunity', 'service'],
     lines: [
-      ['Sales processes', 'Account, opportunity and handoff workflows configured around the way your sales teams work.'],
-      ['Service processes', 'Service requests, routing and escalation reviewed so ownership and follow-up are clear.'],
-      ['Enterprise integration', 'Records and handoffs mapped between Oracle CX and the systems that support fulfilment.'],
+      ['Sales processes', 'Account, opportunity and handoff workflows built around how your sales teams work.'],
+      ['Service processes', 'Service requests, routing and escalation with clear ownership.'],
+      ['Enterprise integration', 'Records and handoffs mapped between Oracle CX and fulfillment systems.'],
     ],
   },
   {
     id: 'salesforce',
     name: 'Salesforce',
-    scope: 'CRM implemented and extended for sales and service teams, planned around real scenarios.',
     stations: ['lead', 'opportunity', 'service'],
     lines: [
       ['Sales and service workflows', 'Lead, opportunity and case processes with role-based access.'],
       ['Customization and automation', 'Business rules, approvals and handoffs configured in Salesforce.'],
-      ['Data migration planning', 'Record mapping, data-quality checks and cutover validation.'],
-      ['CPQ and ERP integration', 'How quote, order and customer data move between systems.'],
+      ['Data migration and integration', 'Record mapping, cutover validation, and quote and order data shared with CPQ and ERP.'],
     ],
   },
 ];
 ---
 
-<section class="practices" id="practices" aria-labelledby="practices-title" data-practices>
+<section class="practices theme-light" id="practices" aria-labelledby="practices-title" data-practices>
   <div class="wrap">
     <div class="practices__intro">
-      <p class="tag"><span>Practices</span></p>
-      <h2 class="h2" id="practices-title" data-lines>The quote sits in the middle. We work on both sides of it.</h2>
+      <h2 class="chapter" id="practices-title">
+        <span class="tag"><span>Practices<span class="visually-hidden">: </span></span></span>
+        <span class="h2" data-lines>We work both sides of the quote.</span>
+      </h2>
       <p class="body" data-reveal>
-        Before a quote there is a lead, an account and an opportunity. After it there is an order to fulfil and,
-        sooner or later, a service request. Three practices cover that line from end to end, and the integration
-        work that keeps one record consistent across all of it.
+        Leads and opportunities feed the quote. Orders and service requests follow it. Our Oracle CPQ, Oracle CX
+        and Salesforce practices cover every stop.
       </p>
     </div>
 
@@ -85,7 +81,6 @@ const practices = [
         practices.map((practice, index) => (
           <article class="practice" data-practice={practice.id} data-stations={practice.stations.join(' ')} data-reveal style={`--i:${index}`}>
             <h3 class="practice__name">{practice.name}</h3>
-            <p class="practice__scope">{practice.scope}</p>
             <dl class="practice__lines">
               {practice.lines.map(([term, detail]) => (
                 <div>
@@ -133,6 +128,7 @@ const practices = [
 
 <style>
   .practices {
+    background: var(--ground);
     padding-block: var(--section);
   }
 
@@ -178,8 +174,8 @@ const practices = [
     width: 1.5rem;
     height: 1.5rem;
     border-radius: 50%;
-    background: var(--paper);
-    box-shadow: inset 0 0 0 0.3rem var(--navy);
+    background: var(--ground);
+    box-shadow: inset 0 0 0 0.3rem var(--ink);
     transition:
       background-color var(--t-med) linear,
       transform var(--t-med) var(--ease-seat);
@@ -204,7 +200,7 @@ const practices = [
   }
 
   .line__station.is-lit .line__dot {
-    background: var(--navy);
+    background: var(--ink);
     transform: scale(1.18);
   }
 
@@ -243,7 +239,7 @@ const practices = [
 
   .practice__lines {
     display: grid;
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
   }
 
   .practice__lines > div {

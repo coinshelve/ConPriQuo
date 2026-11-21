@@ -6,52 +6,52 @@
  *   npm run build && npm run preview     (in another terminal)
  *   node tools/qa.mjs --url http://127.0.0.1:4322/
  *
- * Checks: console and network errors, horizontal overflow at eight widths, document
- * outline, copy rules, the configurator's rules, pricing and approvals, the brief
- * composer, reduced motion, no WebGL, no JavaScript, axe accessibility rules, and
- * loading metrics.
+ * Checks, in order:
+ *    1. clean load: console, page and network errors, and the 3D stage starting
+ *    2. document: outline, copy rules, links, metadata, structured data
+ *    3. configurator: rules, bill of materials, pricing and approvals
+ *    4. enquiry dialog: opening, validation, the email handoff, closing, focus
+ *    5. axe accessibility rules, for the page and for the open dialog
+ *    6. horizontal overflow at eight widths
+ *    7. reduced motion
+ *    8. no JavaScript
+ *    9. software-only WebGL (the page should refuse it and show posters)
+ *   10. no WebGL at all
+ *   11. loading metrics
+ *
+ * Headless Chrome only has a software renderer, which the page refuses for its 3D
+ * stage. Every check that needs the live scene lifts that refusal for its own page
+ * (allowSoftwareWebGL); check 9 leaves it in place on purpose.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import puppeteer from 'puppeteer-core';
+import { allowSoftwareWebGL, launch, option, wait } from './lib/browser.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const args = process.argv.slice(2);
-const opt = (name, fallback) => {
-  const i = args.indexOf(`--${name}`);
-  return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : fallback;
-};
-const url = opt('url', 'http://127.0.0.1:4322/');
+const url = option('url', 'http://127.0.0.1:4322/');
 
-const executablePath = [
-  process.env.CHROME_PATH,
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-]
-  .filter(Boolean)
-  .find((p) => existsSync(p));
-if (!executablePath) {
-  console.error('No Chrome or Edge found. Set CHROME_PATH.');
-  process.exit(2);
-}
+const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'];
+const MAILTO_PREFIX = 'mailto:admin@conpriquo-solutions.in?subject=';
+const MAILTO_LIMIT = 1900;
 
-const GL_ARGS = ['--ignore-gpu-blocklist', '--enable-unsafe-swiftshader', '--use-angle=swiftshader'];
 const results = [];
 const record = (name, pass, detail = '') => {
   results.push({ name, pass, detail });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
 };
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function open(browser, { width = 1440, height = 900, mobile = false, reducedMotion = false, javascript = true } = {}) {
+/**
+ * Opens the page. `softwareWebGL` lifts the page's refusal of a software renderer so
+ * the 3D stage starts in headless Chrome; pass false to see what such a device gets.
+ */
+async function open(
+  browser,
+  { width = 1440, height = 900, mobile = false, reducedMotion = false, javascript = true, softwareWebGL = true } = {},
+) {
   const page = await browser.newPage();
   await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
+  if (softwareWebGL) await allowSoftwareWebGL(page);
   if (reducedMotion) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   if (!javascript) await page.setJavaScriptEnabled(false);
   const problems = [];
@@ -68,7 +68,50 @@ async function open(browser, { width = 1440, height = 900, mobile = false, reduc
   return { page, problems };
 }
 
-const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--hide-scrollbars', ...GL_ARGS] });
+/**
+ * Waits for the enquiry dialog's opening transition, then ends whatever part of it is
+ * still running, and returns how many animations that was. Drawing the 3D scene on a
+ * software renderer can leave headless Chrome without a new frame for seconds, which
+ * freezes the 420 ms transition part-way (the dialog stays faded and shifted). Position
+ * and contrast are judged on the settled dialog, so the transition is taken to its end
+ * state instead of waiting on frames that may not come.
+ */
+async function settleDialog(page, ms = 700) {
+  await wait(ms);
+  return page.evaluate(() => {
+    const running = document.querySelector('[data-enquiry-dialog]').getAnimations({ subtree: true });
+    for (const animation of running) {
+      try {
+        animation.finish();
+      } catch {
+        // an endless animation has no end state to jump to
+      }
+    }
+    return running.length;
+  });
+}
+const frozenNote = (count) => (count ? `the opening transition was still running after the wait and was ended by the test (${count} animations)` : '');
+
+/** Splits a mailto link the way a mail handler does: address, then `&` separated fields. */
+function parseMailto(href) {
+  const decode = (s) => {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return '';
+    }
+  };
+  const q = href.indexOf('?');
+  const fields = q < 0 ? [] : href.slice(q + 1).split('&');
+  const raw = {};
+  for (const field of fields) {
+    const eq = field.indexOf('=');
+    raw[eq < 0 ? field : field.slice(0, eq)] = eq < 0 ? '' : field.slice(eq + 1);
+  }
+  return { fieldNames: Object.keys(raw), fieldCount: fields.length, rawBody: raw.body ?? '', body: decode(raw.body ?? ''), subject: decode(raw.subject ?? '') };
+}
+
+const browser = await launch();
 
 try {
   // ------------------------------------------------------------ 1. clean load
@@ -95,7 +138,8 @@ try {
         h1: headings.filter((h) => h.level === 1).length,
         skips: headings.filter((h, i) => i > 0 && h.level > headings[i - 1].level + 1).map((h) => h.text),
         headingCount: headings.length,
-        emDash: (visibleText.match(/\u2014/g) || []).length,
+        // U+2014, written as a code point so this file follows the house rule it enforces
+        emDash: visibleText.split(String.fromCharCode(0x2014)).length - 1,
         missing,
         internal,
         plannedCount: planned.length,
@@ -132,7 +176,8 @@ try {
     // ---------------------------------------------------------- 3. configurator
     // Real mouse clicks are aimed at coordinates, so smooth scrolling is switched off
     // for the test run to keep those coordinates stable.
-    await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
+    const steadyScroll = () => page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
+    await steadyScroll();
     const pick = async (name, value) => {
       await page.evaluate(
         (n, v) => {
@@ -205,53 +250,319 @@ try {
     );
     record('quote document shows the approval as pending', totals.stamp === 'pending');
 
-    // ---------------------------------------------------------- 4. brief composer
-    await page.evaluate(() => document.querySelector('[data-composer]').scrollIntoView({ block: 'start' }));
-    await page.type('#brief-need', 'Sellers quote from spreadsheets & approvals happen by email.');
-    await page.type('#brief-name', 'QA Tester');
-    await wait(300);
-    const brief = await page.evaluate(() => {
-      const href = document.querySelector('[data-send]').getAttribute('href');
-      return { href, preview: document.querySelector('[data-preview]').textContent };
+    // ---------------------------------------------------------- 4. enquiry dialog
+    // Anything other than a GET leaving the page during this section is a finding: this
+    // build has no form endpoint, so the request may only go to the visitor's email app.
+    const sent = [];
+    page.on('request', (r) => {
+      if (r.method() !== 'GET') sent.push(`${r.method()} ${r.url()}`);
     });
-    const decoded = decodeURIComponent(brief.href);
-    record(
-      'brief composer builds a mailto with the typed brief',
-      brief.href.startsWith('mailto:admin@conpriquo-solutions.in?subject=') && decoded.includes('spreadsheets & approvals') && decoded.includes('QA Tester'),
-      `${brief.href.length} characters`,
+    // The handoff is a script navigation to a mailto link. It is recorded, then
+    // cancelled, so a test run never opens an email app on the machine it runs on.
+    const guardHandoff = () =>
+      page.evaluate(() => {
+        window.__handoffs = [];
+        window.navigation?.addEventListener('navigate', (event) => {
+          if (!event.destination.url.startsWith('mailto:')) return;
+          window.__handoffs.push(event.destination.url);
+          event.preventDefault();
+        });
+      });
+    const HEADER_CONTROL = 'header [data-enquiry]';
+    const dialogState = () =>
+      page.evaluate((headerControl) => {
+        const dialog = document.querySelector('[data-enquiry-dialog]');
+        const active = document.activeElement;
+        const shown = (el) => Boolean(el) && !el.hidden && el.getClientRects().length > 0;
+        return {
+          open: dialog.open,
+          hasDialog: document.documentElement.classList.contains('has-dialog'),
+          focus: active ? active.id || active.tagName.toLowerCase() : '',
+          focusOnHeaderControl: active === document.querySelector(headerControl),
+          formShown: shown(dialog.querySelector('[data-enquiry-form]')),
+          doneShown: shown(dialog.querySelector('[data-enquiry-done]')),
+          doneText: dialog.querySelector('[data-enquiry-done-text]').textContent.trim(),
+          status: dialog.querySelector('[data-enquiry-status]').textContent.trim(),
+          href: dialog.querySelector('a[data-enquiry-mailto]').getAttribute('href') ?? '',
+          handoffs: window.__handoffs ?? [],
+        };
+      }, HEADER_CONTROL);
+    const fieldState = () =>
+      page.evaluate(() => {
+        const state = {};
+        for (const name of ['service', 'name', 'phone', 'email']) {
+          const input = document.getElementById(`enq-${name}`);
+          const field = input.closest('.field');
+          const own = field.querySelector('.field__error');
+          const describedBy = input.getAttribute('aria-describedby');
+          const error = describedBy ? document.getElementById(describedBy) : null;
+          state[name] = {
+            invalid: field.classList.contains('is-invalid'),
+            ariaInvalid: input.getAttribute('aria-invalid'),
+            describedBy,
+            pointsAtOwnError: Boolean(error) && error === own,
+            errorShown: Boolean(error) && !error.hidden && error.getClientRects().length > 0 && getComputedStyle(error).visibility !== 'hidden',
+            errorText: error ? error.textContent.trim() : '',
+            ownErrorHidden: own.hidden || own.getClientRects().length === 0,
+          };
+        }
+        return state;
+      });
+    const flagged = (f) => f.invalid && f.ariaInvalid === 'true' && f.pointsAtOwnError && f.errorShown && f.errorText.length > 0;
+    const cleared = (f) => !f.invalid && f.ariaInvalid === null && f.describedBy === null && f.ownErrorHidden;
+    const names = (fields, test) => Object.keys(fields).filter((name) => test(fields[name]));
+    const openFromHeader = async () => {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await wait(500);
+      await page.click(HEADER_CONTROL);
+      return settleDialog(page);
+    };
+    const submit = async () => {
+      await page.click('[data-enquiry-submit]');
+      await wait(400);
+    };
+    const retype = async (selector, text) => {
+      await page.focus(selector);
+      await page.keyboard.down('Control');
+      await page.keyboard.press('KeyA');
+      await page.keyboard.up('Control');
+      await page.keyboard.press('Backspace');
+      if (text) await page.type(selector, text);
+    };
+    await guardHandoff();
+
+    // a. every opener is a real link, so it still works without this script
+    const openers = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('[data-enquiry]')).map((el) => ({ tag: el.tagName, href: el.getAttribute('href') ?? '', text: el.textContent.replace(/\s+/g, ' ').trim() })),
     );
-    await page.evaluate(() => document.querySelector('input[name="path"][value="staffing"]').click());
-    await wait(300);
-    const staffing = await page.evaluate(() => ({
-      projectHidden: document.querySelector('[data-path-panel="project"]').hidden,
-      staffingHidden: document.querySelector('[data-path-panel="staffing"]').hidden,
-      preview: document.querySelector('[data-preview]').textContent,
-    }));
-    record('switching path swaps the fields and the brief', staffing.projectHidden && !staffing.staffingHidden && staffing.preview.startsWith('SKILL REQUIREMENT'));
-    // intent link pre-fills an empty brief
-    await page.evaluate(() => {
-      document.querySelector('#brief-need').value = '';
-      document.querySelector('.intent[data-brief-platform="Integration"]').click();
+    const notLinks = openers.filter((o) => o.tag !== 'A' || !o.href.startsWith('mailto:'));
+    record(
+      'enquiry: every opener is a mailto link',
+      openers.length > 0 && notLinks.length === 0,
+      notLinks.length ? notLinks.map((o) => `${o.tag.toLowerCase()} "${o.text}" href="${o.href}"`).join(' | ') : `${openers.length} links`,
+    );
+
+    // b. the header control opens it
+    const headerText = await page.evaluate((sel) => document.querySelector(sel)?.textContent.replace(/\s+/g, ' ').trim() ?? '', HEADER_CONTROL);
+    await openFromHeader();
+    let dlg = await dialogState();
+    record(
+      'enquiry: the header control opens the dialog with focus on the service select',
+      /talk to us/i.test(headerText) && dlg.open && dlg.hasDialog && dlg.focus === 'enq-service',
+      `control "${headerText}", open ${dlg.open}, has-dialog ${dlg.hasDialog}, focus on ${dlg.focus}`,
+    );
+
+    // c. an empty submission
+    await submit();
+    let fields = await fieldState();
+    dlg = await dialogState();
+    record(
+      'enquiry: an empty submission marks service, name, phone and email, and says so',
+      names(fields, flagged).length === 4 && dlg.focus === 'enq-service' && dlg.status.length > 0 && dlg.formShown && !dlg.doneShown,
+      `flagged ${names(fields, flagged).join(' ') || 'none'}, focus on ${dlg.focus}, status "${dlg.status}"`,
+    );
+
+    // d. malformed phone and email
+    const services = await page.evaluate(() => Array.from(document.querySelectorAll('#enq-service option')).map((o) => o.value).filter(Boolean));
+    const entered = {
+      service: services[0] ?? '',
+      name: 'QA Tester',
+      phone: '+91 98765 43210',
+      email: 'qa.tester@example.com',
+      requirement: 'Sellers quote from spreadsheets & approvals happen by email.',
+    };
+    await page.select('#enq-service', entered.service);
+    await page.type('#enq-name', entered.name);
+    await page.type('#enq-phone', '12ab');
+    await page.type('#enq-email', 'name@company');
+    await submit();
+    fields = await fieldState();
+    dlg = await dialogState();
+    record(
+      'enquiry: a malformed phone and a malformed email are both rejected',
+      flagged(fields.phone) && flagged(fields.email) && cleared(fields.service) && cleared(fields.name) && dlg.focus === 'enq-phone' && !dlg.doneShown && dlg.handoffs.length === 0,
+      `phone "12ab" ${flagged(fields.phone) ? 'rejected' : 'accepted'}, email "name@company" ${flagged(fields.email) ? 'rejected' : 'accepted'}, focus on ${dlg.focus}`,
+    );
+
+    // e. the error leaves as the field is corrected, and only that field's error
+    await retype('#enq-phone', '+91 98');
+    const partway = await fieldState();
+    await page.type('#enq-phone', '765 43210');
+    fields = await fieldState();
+    record(
+      'enquiry: correcting a field clears its error as you type',
+      flagged(partway.phone) && cleared(fields.phone) && flagged(fields.email),
+      `phone error while still too short: ${flagged(partway.phone)}, after correcting: ${!cleared(fields.phone)}, email error kept: ${flagged(fields.email)}`,
+    );
+
+    // f. a valid submission is handed to the email app, and nothing is posted
+    await retype('#enq-email', entered.email);
+    await page.type('#enq-requirement', entered.requirement);
+    await submit();
+    dlg = await dialogState();
+    {
+      const mail = parseMailto(dlg.href);
+      const lines = mail.body.split('\r\n');
+      const missing = Object.entries(entered)
+        .filter(([, value]) => !mail.body.includes(value))
+        .map(([key]) => key);
+      const crlf = mail.rawBody.includes('%0D%0A') && !/[\r\n]/.test(lines.join('')) && lines.length >= 5;
+      const handedOver = dlg.handoffs.length === 1 && dlg.handoffs[0] === dlg.href;
+      record(
+        'enquiry: a valid request becomes a mailto with every value, CRLF line breaks and no POST',
+        dlg.doneShown &&
+          !dlg.formShown &&
+          dlg.href.startsWith(MAILTO_PREFIX) &&
+          mail.fieldCount === 2 &&
+          mail.fieldNames.join() === 'subject,body' &&
+          missing.length === 0 &&
+          crlf &&
+          handedOver &&
+          sent.length === 0,
+        `done panel ${dlg.doneShown}, ${dlg.href.length} characters, ${lines.length} lines, missing: ${missing.join(' ') || 'nothing'}, CRLF ${crlf}, ` +
+          `handed to the email app ${handedOver}, requests other than GET: ${sent.length ? sent.join(' ') : 'none'}`,
+      );
+    }
+
+    // g. a requirement at the field's 1200 character limit
+    await page.click('[data-enquiry-done] [data-enquiry-close]');
+    await wait(400);
+    await openFromHeader();
+    const long = 'We need our CPQ rules and price book put right, as it is now too slow to use on a big deal. '.repeat(14).slice(0, 1200);
+    await page.evaluate((text) => {
+      const area = document.getElementById('enq-requirement');
+      area.value = text;
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+    }, long);
+    const typedLength = await page.evaluate(() => document.getElementById('enq-requirement').value.length);
+    await submit();
+    dlg = await dialogState();
+    {
+      const mail = parseMailto(dlg.href);
+      const kept = mail.body.includes(long.slice(0, 200)) && !mail.body.includes(long);
+      record(
+        'enquiry: a 1200 character requirement keeps the mailto within 1900 characters and says it was shortened',
+        typedLength === 1200 && dlg.doneShown && dlg.href.startsWith(MAILTO_PREFIX) && dlg.href.length <= MAILTO_LIMIT && kept && /shortened|only the first part/i.test(dlg.doneText) && sent.length === 0,
+        `${typedLength} characters entered, link is ${dlg.href.length} characters, requirement shortened in the link: ${kept}, done text: "${dlg.doneText}"`,
+      );
+    }
+
+    // h. Escape
+    await page.keyboard.press('Escape');
+    await wait(400);
+    dlg = await dialogState();
+    record(
+      'enquiry: Escape closes the dialog and returns focus to the control that opened it',
+      !dlg.open && !dlg.hasDialog && dlg.focusOnHeaderControl,
+      `open ${dlg.open}, has-dialog ${dlg.hasDialog}, focus on ${dlg.focusOnHeaderControl ? 'the header control' : dlg.focus}`,
+    );
+
+    // i. an intent link arrives with its service chosen and its note written.
+    // The dialog keeps what was typed, so this starts from a fresh page.
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.evaluate(() => document.fonts.ready);
+    await steadyScroll();
+    await guardHandoff();
+    await wait(800);
+    const INTENT = '#handoff [data-enquiry][data-enquiry-service]';
+    const intent = await page.evaluate((sel) => {
+      const link = document.querySelector(sel);
+      if (!link) return null;
+      link.scrollIntoView({ block: 'center' });
+      return { service: link.dataset.enquiryService ?? '', note: link.dataset.enquiryNote ?? '', before: document.getElementById('enq-requirement').value };
+    }, INTENT);
+    if (!intent) {
+      record('enquiry: an intent link opens the dialog with its service and note', false, `nothing matches ${INTENT}`);
+    } else {
+      await wait(700);
+      await page.click(INTENT);
+      await settleDialog(page);
+      dlg = await dialogState();
+      const got = await page.evaluate(() => ({ service: document.getElementById('enq-service').value, requirement: document.getElementById('enq-requirement').value }));
+      record(
+        'enquiry: an intent link opens the dialog with its service and note',
+        dlg.open && intent.service.length > 0 && intent.note.length > 0 && intent.before === '' && got.service === intent.service && got.requirement === intent.note && dlg.focus === 'enq-name',
+        `service "${got.service}", requirement "${got.requirement}", focus on ${dlg.focus}`,
+      );
+    }
+
+    // j. a click on the backdrop
+    if (!(await dialogState()).open) await openFromHeader();
+    const backdrop = await page.evaluate(() => {
+      const box = document.querySelector('[data-enquiry-dialog]').getBoundingClientRect();
+      const x = box.left >= 16 ? box.left / 2 : window.innerWidth - (window.innerWidth - box.right) / 2;
+      const y = box.top + box.height / 2;
+      return { x, y, outside: x < box.left - 4 || x > box.right + 4 };
     });
-    await wait(300);
-    const intent = await page.evaluate(() => ({
-      path: document.querySelector('input[name="path"]:checked').value,
-      platform: document.querySelector('input[name="platform"][value="Integration"]').checked,
-      need: document.querySelector('#brief-need').value,
-    }));
-    record('intent link opens the brief pre-written', intent.path === 'project' && intent.platform && intent.need.length > 20, intent.need);
+    if (backdrop.outside) await page.mouse.click(backdrop.x, backdrop.y);
+    await wait(400);
+    dlg = await dialogState();
+    record(
+      'enquiry: a click on the backdrop closes the dialog',
+      backdrop.outside && !dlg.open && !dlg.hasDialog,
+      backdrop.outside ? `clicked at ${Math.round(backdrop.x)}, ${Math.round(backdrop.y)}; open ${dlg.open}, has-dialog ${dlg.hasDialog}` : 'no backdrop to click at this width',
+    );
+
+    // k. on a phone the dialog is the whole screen
+    {
+      const { page: phone } = await open(browser, { width: 390, height: 844, mobile: true });
+      await phone.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
+      const opened = await phone.evaluate(() => {
+        const link = Array.from(document.querySelectorAll('[data-enquiry]')).find((el) => el.getClientRects().length > 0);
+        if (!link) return '';
+        link.scrollIntoView({ block: 'center' });
+        link.setAttribute('data-qa-opener', '');
+        return link.textContent.replace(/\s+/g, ' ').trim();
+      });
+      let frozen = 0;
+      if (opened) {
+        await wait(600);
+        await phone.click('[data-qa-opener]');
+        frozen = await settleDialog(phone, 900);
+      }
+      const cover = await phone.evaluate(() => {
+        const dialog = document.querySelector('[data-enquiry-dialog]');
+        const box = dialog.getBoundingClientRect();
+        return { open: dialog.open, left: box.left, top: box.top, right: box.right, bottom: box.bottom, vw: window.innerWidth, vh: window.innerHeight };
+      });
+      const round = (n) => Math.round(n * 10) / 10;
+      record(
+        'enquiry: at 390 x 844 the open dialog covers the whole viewport',
+        cover.open && cover.left <= 0.5 && cover.top <= 0.5 && cover.right >= cover.vw - 0.5 && cover.bottom >= cover.vh - 0.5,
+        `opened from "${opened}", dialog ${round(cover.left)},${round(cover.top)} to ${round(cover.right)},${round(cover.bottom)} in a ${cover.vw} x ${cover.vh} viewport` +
+          (frozen ? `; ${frozenNote(frozen)}` : ''),
+      );
+      await phone.close();
+    }
 
     // ---------------------------------------------------------- 5. accessibility (axe)
     await page.evaluate(() => window.scrollTo(0, 0));
     // Let scroll-driven transitions settle: contrast is judged on steady states.
     await wait(2000);
     await page.addScriptTag({ content: readFileSync(resolve(root, 'node_modules/axe-core/axe.min.js'), 'utf8') });
-    const axe = await page.evaluate(async () => {
-      document.documentElement.classList.add('reveal-fallback');
-      const run = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] } });
-      return run.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length, help: v.help, sample: v.nodes[0]?.target?.join(' ') }));
-    });
-    record('axe: no WCAG A or AA violations', axe.length === 0, axe.map((v) => `${v.id} [${v.impact}] x${v.nodes} ${v.sample}`).join(' | '));
+    const runAxe = (selector) =>
+      page.evaluate(
+        async (sel, tags) => {
+          document.documentElement.classList.add('reveal-fallback');
+          const context = sel ? document.querySelector(sel) : document;
+          const run = await window.axe.run(context, { runOnly: { type: 'tag', values: tags } });
+          return run.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length, help: v.help, sample: v.nodes[0]?.target?.join(' ') }));
+        },
+        selector,
+        AXE_TAGS,
+      );
+    const describe = (violations) => violations.map((v) => `${v.id} [${v.impact}] x${v.nodes} ${v.sample}`).join(' | ');
+    const axe = await runAxe('');
+    record('axe: no WCAG A or AA violations', axe.length === 0, describe(axe));
+
+    const frozen = await openFromHeader();
+    dlg = await dialogState();
+    const axeDialog = dlg.open ? await runAxe('[data-enquiry-dialog]') : [];
+    record(
+      'axe: no WCAG A or AA violations in the open enquiry dialog',
+      dlg.open && axeDialog.length === 0,
+      dlg.open ? [describe(axeDialog), frozenNote(frozen)].filter(Boolean).join('; ') : 'the dialog did not open',
+    );
     await page.close();
   }
 
@@ -275,7 +586,7 @@ try {
         const vw = document.documentElement.clientWidth;
         for (const el of document.querySelectorAll('main *, header *, footer *')) {
           const r = el.getBoundingClientRect();
-          if (r.width && r.right > vw + 1 && getComputedStyle(el).position !== 'fixed' && !el.closest('.stage, .site-menu, .composer__preview, pre')) {
+          if (r.width && r.right > vw + 1 && getComputedStyle(el).position !== 'fixed' && !el.closest('.stage, .site-menu, pre')) {
             worst.who = `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} right=${Math.round(r.right)}`;
             break;
           }
@@ -313,31 +624,76 @@ try {
         const cs = getComputedStyle(el);
         return cs.opacity === '0' || cs.visibility === 'hidden';
       }).length;
+      const openers = Array.from(document.querySelectorAll('[data-enquiry]'));
+      const dialog = document.querySelector('[data-enquiry-dialog]');
       return {
         hidden,
         h1: document.querySelector('h1')?.textContent.replace(/\s+/g, ' ').trim(),
         bomRows: Array.from(document.querySelectorAll('[data-bom] tr[data-part]')).filter((r) => !r.hidden).length,
         total: document.querySelector('[data-out="total"]')?.textContent.trim(),
-        composerShown: getComputedStyle(document.querySelector('[data-composer]')).display !== 'none',
+        enquiryLinks: openers.filter((el) => el.tagName === 'A' && (el.getAttribute('href') ?? '').startsWith('mailto:')).length,
+        dialogShown: Boolean(dialog) && getComputedStyle(dialog).display !== 'none',
         mailto: Boolean(document.querySelector('a[href^="mailto:"]')),
       };
     });
     record(
       'no JavaScript: content, default example and contact links are present',
-      state.hidden === 0 && state.bomRows === 2 && Boolean(state.total) && state.mailto && !state.composerShown,
+      state.hidden === 0 && state.bomRows === 2 && Boolean(state.total) && state.mailto && state.enquiryLinks >= 1 && !state.dialogShown,
       JSON.stringify(state),
     );
     await page.close();
   }
+
 } finally {
   await browser.close();
 }
 
-// ------------------------------------------------------------ 9. no WebGL (separate browser without 3D APIs)
+// ------------------------------------------------------------ 9. software-only WebGL
+// A browser whose graphics hardware is unusable and which has fallen back to software
+// by itself. The page must refuse to draw 3D there and show the posters.
 {
-  const noGl = await puppeteer.launch({ executablePath, headless: true, args: ['--hide-scrollbars', '--disable-gpu', '--disable-3d-apis'] });
+  const fallback = await launch({ softwareFallback: true });
   try {
-    const { page, problems } = await open(noGl);
+    const { page, problems } = await open(fallback, { softwareWebGL: false });
+    await wait(3000);
+    const state = await page.evaluate(() => {
+      const strict = (type) => {
+        try {
+          return Boolean(document.createElement('canvas').getContext(type, { failIfMajorPerformanceCaveat: true }));
+        } catch {
+          return false;
+        }
+      };
+      let renderer = '';
+      try {
+        const gl = document.createElement('canvas').getContext('webgl2');
+        const info = gl?.getExtension('WEBGL_debug_renderer_info');
+        renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+      } catch {
+        renderer = '';
+      }
+      return {
+        noStage: document.documentElement.classList.contains('no-stage'),
+        poster: document.querySelector('[data-stage-slot] img')?.getAttribute('src') ?? '',
+        canvasReady: Boolean(document.querySelector('.stage-canvas.is-ready')),
+        // What the browser itself answers when asked the way the page asks.
+        browserGrantsWithoutCaveat: strict('webgl2') || strict('webgl'),
+        renderer,
+      };
+    });
+    record('software-only WebGL: posters replace the canvas', state.noStage && state.poster.length > 0 && !state.canvasReady, JSON.stringify(state));
+    record('software-only WebGL: no console, page or network errors', problems.length === 0, problems.length ? problems.slice(0, 4).join(' | ') : 'none');
+    await page.close();
+  } finally {
+    await fallback.close();
+  }
+}
+
+// ------------------------------------------------------------ 10. no WebGL (separate browser without 3D APIs)
+{
+  const noGl = await launch({ webgl: false });
+  try {
+    const { page, problems } = await open(noGl, { softwareWebGL: false });
     await wait(3000);
     const state = await page.evaluate(() => ({
       noStage: document.documentElement.classList.contains('no-stage'),
@@ -351,9 +707,9 @@ try {
   }
 }
 
-// ------------------------------------------------------------ 10. loading metrics (fresh browser, no cache)
+// ------------------------------------------------------------ 11. loading metrics (fresh browser, no cache)
 {
-  const perf = await puppeteer.launch({ executablePath, headless: true, args: ['--hide-scrollbars', ...GL_ARGS] });
+  const perf = await launch();
   try {
     for (const profile of [
       { name: 'desktop', width: 1440, height: 900, mobile: false, cpu: 1 },
@@ -361,6 +717,8 @@ try {
     ]) {
       const page = await perf.newPage();
       await page.setViewport({ width: profile.width, height: profile.height, deviceScaleFactor: profile.mobile ? 2 : 1, isMobile: profile.mobile, hasTouch: profile.mobile });
+      // The 3D stage is part of what a visitor's device loads, so it is part of the measurement.
+      await allowSoftwareWebGL(page);
       const client = await page.createCDPSession();
       await client.send('Network.enable');
       await client.send('Emulation.setCPUThrottlingRate', { rate: profile.cpu });
@@ -390,9 +748,9 @@ try {
       const m = await page.evaluate(() => {
         const nav = performance.getEntriesByType('navigation')[0];
         const fcp = performance.getEntriesByName('first-contentful-paint')[0];
-        return { ...window.__m, fcp: fcp ? fcp.startTime : 0, dcl: nav.domContentLoadedEventEnd, load: nav.loadEventEnd };
+        return { ...window.__m, fcp: fcp ? fcp.startTime : 0, dcl: nav.domContentLoadedEventEnd, load: nav.loadEventEnd, stage: Boolean(document.querySelector('.stage-canvas.is-ready')) };
       });
-      const line = `FCP ${Math.round(m.fcp)} ms, LCP ${Math.round(m.lcp)} ms (${m.lcpEl}), CLS ${m.cls.toFixed(3)}, blocking ${Math.round(m.long)} ms, ${requests} requests, ${(bytes / 1024).toFixed(0)} KB transferred`;
+      const line = `FCP ${Math.round(m.fcp)} ms, LCP ${Math.round(m.lcp)} ms (${m.lcpEl}), CLS ${m.cls.toFixed(3)}, blocking ${Math.round(m.long)} ms, ${requests} requests, ${(bytes / 1024).toFixed(0)} KB transferred, 3D stage ${m.stage ? 'started' : 'not started'}`;
       record(`metrics, ${profile.name}: LCP under 2.5 s and CLS under 0.1 (local server)`, m.lcp > 0 && m.lcp < 2500 && m.cls < 0.1, line);
       await page.close();
     }

@@ -11,7 +11,7 @@ import { Group, Vector3 } from 'three';
 import type { Evaluation } from './cpq/engine';
 import { money } from './cpq/engine';
 import { LabelLayer } from './scene/labels';
-import type { Label } from './scene/labels';
+import type { Label, LabelSpec } from './scene/labels';
 import { createMaterials } from './scene/palette';
 import { Quote } from './scene/quote';
 import { Rig } from './scene/rig';
@@ -22,10 +22,14 @@ import type { Family } from './scene/team';
 import { Unit } from './scene/unit';
 import type { Workbench } from './workbench';
 
+/**
+ * True only where WebGL 2 runs on real graphics hardware. A software renderer would
+ * draw the scene too slowly to scroll against, so those devices get the posters.
+ */
 function webglAvailable(): boolean {
   try {
     const canvas = document.createElement('canvas');
-    return Boolean(canvas.getContext('webgl2'));
+    return Boolean(canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: true }));
   } catch {
     return false;
   }
@@ -71,6 +75,16 @@ interface StoryState {
   labels: { config: number; bom: number; quote: number; flow: number };
 }
 
+/**
+ * Each label group belongs to one chapter. It fades in over a short stretch just before
+ * its chapter arrives and out just after the chapter is left, so a visitor who stops
+ * anywhere else sees the labels either fully on or not at all, never half-transparent.
+ */
+const LABELS_IN: [number, number] = [0.84, 0.96];
+const LABELS_OUT: [number, number] = [0.04, 0.16];
+const labelsIn = (t: number) => span(t, LABELS_IN[0], LABELS_IN[1]);
+const labelsOut = (t: number) => 1 - span(t, LABELS_OUT[0], LABELS_OUT[1]);
+
 /** Everything the worked-example scene needs, as a function of scroll progress 0 to 4. */
 function storyAt(progress: number): StoryState {
   const p = Math.min(4, Math.max(0, progress));
@@ -87,33 +101,68 @@ function storyAt(progress: number): StoryState {
   };
   if (seg === 0) {
     state.arc = span(t, 0.2, 1);
-    state.labels.config = span(t, 0.6, 1);
+    state.labels.config = labelsIn(t);
   } else if (seg === 1) {
     state.arc = 1 - span(t, 0, 0.4);
-    state.labels.config = 1 - span(t, 0, 0.3);
+    state.labels.config = labelsOut(t);
     state.explode = span(t, 0.15, 1);
-    state.labels.bom = span(t, 0.65, 1);
+    state.labels.bom = labelsIn(t);
   } else if (seg === 2) {
     // reassemble first, then shrink onto the sheet as it arrives
     state.explode = 1 - span(t, 0, 0.55);
-    state.labels.bom = 1 - span(t, 0, 0.25);
+    state.labels.bom = labelsOut(t);
     state.figure = easeInOut(span(t, 0.35, 1));
     state.sheet = span(t, 0.25, 0.9);
-    state.labels.quote = span(t, 0.82, 1);
+    state.labels.quote = labelsIn(t);
   } else {
     state.figure = 1;
     state.sheet = 1;
     state.handoff = span(t, 0.1, 1);
-    state.labels.quote = 1 - span(t, 0, 0.3);
-    state.labels.flow = span(t, 0.7, 1);
+    state.labels.quote = labelsOut(t);
+    state.labels.flow = labelsIn(t);
   }
   return state;
 }
 
 const PHASE_NAMES = ['Align', 'Source', 'Screen', 'Coordinate'];
 
-/** Starts the stage. Resolves to false when WebGL is unavailable, so the caller can fall back. */
-export async function initStage(workbench: Workbench): Promise<boolean> {
+/**
+ * Two motions run without being asked: the arm sweep in the opening and the packets
+ * travelling to CRM and ERP. They run only while the visitor is active on the page and
+ * come to rest shortly after the last input, so nothing keeps moving beside the text
+ * someone is trying to read (WCAG 2.2.2). REST_AFTER plus the time taken to slow down
+ * is about eight seconds.
+ */
+const REST_AFTER = 6000;
+/** With no input at all, the opening sweep that starts with the page runs this long. */
+const OPENING_ALLOWANCE = 2500;
+/** If shader compilation has not finished by then, the stage is shown anyway. */
+const COMPILE_TIMEOUT = 4000;
+/** Room kept free at the bottom of a phone-sized stage for the caption printed there. */
+const CAPTION_ROOM = 22;
+
+/**
+ * The two labels on the shortlist line. The wide camera sees the line run left to right
+ * and the tall camera sees it climb the screen, so each label needs a different side of
+ * its dot in each view, or the leaders cross and each label sits beside the other's dot.
+ * On a phone the shortlist is named above the line, clear of the people still in the market.
+ */
+const LINE_LABELS: Record<'wide' | 'tall', { flag: LabelSpec; line: LabelSpec }> = {
+  wide: {
+    flag: { dx: 22, dy: -74, brief: true, compact: { dx: 6, dy: -70 } },
+    line: { dx: 30, dy: 70, brief: true, compact: { dx: 34, dy: -44 } },
+  },
+  tall: {
+    flag: { dx: 56, dy: 30, brief: true, compact: { dx: 6, dy: -70 } },
+    line: { dx: 44, dy: -6, brief: true, compact: { dx: 34, dy: -44 } },
+  },
+};
+
+/**
+ * Starts the stage. Resolves to false when WebGL is unavailable, so the caller can fall
+ * back. `onLost` is called if the graphics context is lost later and does not return.
+ */
+export async function initStage(workbench: Workbench, onLost?: () => void): Promise<boolean> {
   const root = document.documentElement;
   const story = document.querySelector<HTMLElement>('[data-story]');
   const unitSlot = document.querySelector<HTMLElement>('[data-stage-slot]');
@@ -172,43 +221,50 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
   };
 
   // ------------------------------------------------------------------ labels
-  const unitLabels = unitLabelHost ? new LabelLayer(unitLabelHost, rig) : null;
-  const teamLabels = teamLabelHost ? new LabelLayer(teamLabelHost, rig) : null;
+  // Each label also names its place on a phone-sized stage, where the scaled desktop
+  // offsets would stack neighbours on top of each other.
+  const unitLabels = unitLabelHost ? new LabelLayer(unitLabelHost, rig, CAPTION_ROOM) : null;
+  const teamLabels = teamLabelHost ? new LabelLayer(teamLabelHost, rig, CAPTION_ROOM) : null;
 
   const config = unitLabels && {
-    reach: unitLabels.add({ dx: 26, dy: 30 }),
-    tool: unitLabels.add({ dx: 54, dy: -6 }),
-    power: unitLabels.add({ dx: -40, dy: -64 }),
-    ballast: unitLabels.add({ dx: -86, dy: -30 }),
+    reach: unitLabels.add({ dx: 26, dy: 30, compact: { dx: -14, dy: 14 } }),
+    tool: unitLabels.add({ dx: 54, dy: -6, compact: { dx: 4, dy: 50 } }),
+    power: unitLabels.add({ dx: -16, dy: -64, compact: { dx: 16, dy: -56 } }),
+    ballast: unitLabels.add({ dx: -86, dy: -30, compact: { dx: -14, dy: -50 } }),
   };
-  const bomOffsets: Record<string, [number, number]> = {
+  // Desktop offset, then the phone-sized one where the scaled desktop offset does not work.
+  const toolBelow = { dx: 2, dy: 40 };
+  const bomOffsets: Record<string, [number, number, { dx: number; dy: number }?]> = {
     'HX6-BASE': [-150, 44],
     'HX6-ARM-14': [34, -50],
-    'HX6-BAL-01': [-120, -34],
-    'HX6-TL-GRP': [46, 22],
-    'HX6-TL-VAC': [46, 22],
-    'HX6-TL-HOK': [46, 22],
-    'HX6-PMP-KIT': [-130, 50],
-    'HX6-PWR-E': [-26, -62],
+    'HX6-BAL-01': [-120, -34, { dx: -10, dy: -40 }],
+    'HX6-TL-GRP': [46, 22, toolBelow],
+    'HX6-TL-VAC': [46, 22, toolBelow],
+    'HX6-TL-HOK': [46, 22, toolBelow],
+    'HX6-PMP-KIT': [-130, 50, { dx: -16, dy: 34 }],
+    'HX6-PWR-E': [-26, -62, { dx: 10, dy: -50 }],
   };
   const bom = new Map<string, Label>();
   if (unitLabels) {
-    for (const [part, [dx, dy]] of Object.entries(bomOffsets)) bom.set(part, unitLabels.add({ dx, dy, variant: 'bom' }));
+    for (const [part, [dx, dy, compact]] of Object.entries(bomOffsets)) {
+      bom.set(part, unitLabels.add({ dx, dy, compact, variant: 'bom' }));
+    }
   }
   const quoteLabels = unitLabels && {
     total: unitLabels.add({ dx: 40, dy: 34 }),
-    stamp: unitLabels.add({ dx: 36, dy: 46 }),
+    stamp: unitLabels.add({ dx: 36, dy: 46, compact: { dx: -10, dy: 36 } }),
   };
   const flowLabels = unitLabels && {
-    crm: unitLabels.add({ dx: 30, dy: -50 }),
-    erp: unitLabels.add({ dx: 30, dy: 52 }),
+    crm: unitLabels.add({ dx: 30, dy: -50, compact: { dx: 16, dy: -30 } }),
+    erp: unitLabels.add({ dx: 30, dy: 52, compact: { dx: 40, dy: 14 } }),
   };
   const teamTags = teamLabels && {
-    team: teamLabels.add({ dx: -30, dy: -92, brief: true }),
-    seat: teamLabels.add({ dx: 70, dy: 58, brief: true }),
+    // not brief: its second line says whether the seat is open, on every screen size
+    team: teamLabels.add({ dx: -30, dy: -92 }),
+    seat: teamLabels.add({ dx: 70, dy: 58, brief: true, compact: { dx: 10, dy: 62 } }),
     pool: teamLabels.add({ dx: 24, dy: -86, brief: true }),
-    flag: teamLabels.add({ dx: 22, dy: -74, brief: true }),
-    line: teamLabels.add({ dx: 30, dy: 70, brief: true }),
+    flag: teamLabels.add(LINE_LABELS.wide.flag),
+    line: teamLabels.add(LINE_LABELS.wide.line),
   };
 
   const included = new Set<string>();
@@ -226,7 +282,7 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
     }
     if (quoteLabels) {
       quoteLabels.total.set('Total', money(e.pricing.total));
-      quoteLabels.stamp.set('Approval', e.approvalRequired ? 'Awaiting sign-off' : 'Within authority');
+      quoteLabels.stamp.set('Approval', e.approvalRequired ? 'Awaiting approval' : 'Within authority');
     }
   };
   writeLabels(evaluation);
@@ -252,7 +308,7 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
     rig.mount(next === 'unit' ? unitSlot : teamSlot!);
     if (next === 'unit') teamLabels?.hideAll();
     else unitLabels?.hideAll();
-    applyScroll();
+    applyScroll(true);
     rig.invalidate();
   };
 
@@ -260,9 +316,10 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
   const steps = Array.from(story.querySelectorAll<HTMLElement>('[data-step]'));
   const phases = staffing ? Array.from(staffing.querySelectorAll<HTMLElement>('[data-phase]')) : [];
   const desktop = window.matchMedia('(min-width: 64rem)');
-  let progress = 0;
+  let progress = -1;
   let state = storyAt(0);
   let phase = 0;
+  let stopped = false;
 
   const readProgress = () => {
     const vh = window.innerHeight;
@@ -283,9 +340,13 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
     return current;
   };
 
-  function applyScroll() {
+  function applyScroll(force = false) {
+    if (stopped) return;
     if (world === 'unit') {
-      progress = readProgress();
+      const next = readProgress();
+      // Scrolling elsewhere on the page changes nothing here: leave the stage asleep.
+      if (!force && Math.abs(next - progress) < 0.0005) return;
+      progress = next;
       state = storyAt(progress);
       rig.setPose(state.pose);
       unit.setExplode(state.explode);
@@ -303,12 +364,38 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
       }
       buildTeam().setPhase(phase);
       const { width, height } = rig.size;
-      rig.setPose(width / height < 1.15 ? TEAM_POSE_TALL : TEAM_POSE_WIDE);
+      const tall = width / height < 1.15;
+      rig.setPose(tall ? TEAM_POSE_TALL : TEAM_POSE_WIDE);
+      if (teamTags) {
+        const specs = LINE_LABELS[tall ? 'tall' : 'wide'];
+        teamTags.flag.spec = specs.flag;
+        teamTags.line.spec = specs.line;
+      }
     }
   }
 
+  // ------------------------------------------------------------------ visitor activity
+  let lastInput = performance.now();
+  // The packets wait for a first real input; only the opening sweep starts with the page.
+  let touched = false;
+  const ambientOnStage = () => world === 'unit' && (progress < 0.5 || state.handoff > 0);
+  const noteInput = () => {
+    if (stopped) return;
+    lastInput = performance.now();
+    touched = true;
+    // Wake the render loop only where one of the two ambient motions is on stage.
+    if (!reducedMotion && ambientOnStage()) rig.invalidate();
+  };
+  const inputs = new AbortController();
+  const listening = { passive: true, signal: inputs.signal };
+  window.addEventListener('keydown', noteInput, listening);
+  window.addEventListener('touchstart', noteInput, listening);
+  window.addEventListener('touchmove', noteInput, listening);
+  (unitSlot.parentElement ?? unitSlot).addEventListener('pointermove', noteInput, listening);
+
   let scrollQueued = false;
   const onScroll = () => {
+    noteInput();
     if (scrollQueued) return;
     scrollQueued = true;
     requestAnimationFrame(() => {
@@ -317,7 +404,18 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
     });
   };
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
+  // A resized stage may need a different camera, and the chapters sit elsewhere.
+  rig.onResize(() => applyScroll(true));
+  rig.onLost(() => {
+    stopped = true;
+    inputs.abort();
+    window.removeEventListener('scroll', onScroll);
+    unitLabels?.hideAll();
+    teamLabels?.hideAll();
+    root.classList.remove('has-stage');
+    rig.dispose();
+    onLost?.();
+  });
 
   if (staffing && teamSlot) {
     staffing.querySelectorAll<HTMLInputElement>('input[name="family"]').forEach((input) => {
@@ -329,14 +427,6 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
         rig.invalidate();
       });
     });
-    // Phases can also be stepped through directly, without scrolling.
-    phases.forEach((el, index) => {
-      el.addEventListener('click', () => {
-        if (index === phase) return;
-        el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
-      });
-    });
-
     const stageHosts = new Map<Element, World>([
       [unitSlot, 'unit'],
       [teamSlot, 'team'],
@@ -363,19 +453,30 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
   const figure = new Spring(0, 70, 17);
   const weights = { config: 0, bom: 0, quote: 0, flow: 0 };
   const teamWeights = { team: 0, seat: 0, pool: 0, flag: 0, line: 0 };
-  let time = 0;
+  /** How far the opening sweep is under way, 0 at rest to 1, and its own clock. */
+  let sweep = 0;
+  let sweepClock = 0;
 
   const ease = (current: number, target: number, dt: number) =>
     reducedMotion ? target : current + (target - current) * Math.min(1, dt * 9);
 
   rig.onFrame((dt) => {
-    time += dt;
     let active = false;
 
     if (world === 'unit') {
-      // In the opening the upper structure sweeps slowly through its working arc.
-      const idle = !reducedMotion && progress < 0.5;
-      unit.setSlew(idle ? Math.sin(time * 0.38) * 0.2 * (1 - progress * 2) : 0);
+      const awake = !reducedMotion && performance.now() - lastInput < REST_AFTER;
+
+      // In the opening the upper structure sweeps slowly through its working arc. The
+      // sweep fades in and out through its amplitude, so the arm eases back to centre,
+      // and its clock stops with it, so it resumes from the same point.
+      const sweepWanted = awake && progress < 0.5 ? 1 : 0;
+      sweep += (sweepWanted - sweep) * Math.min(1, dt * 3.5);
+      if (sweepWanted === 0 && sweep < 0.01) sweep = 0;
+      if (sweep > 0) {
+        sweepClock += dt;
+        active = true;
+      }
+      unit.setSlew(Math.sin(sweepClock * 0.38) * 0.2 * Math.max(0, 1 - progress * 2) * sweep);
 
       figure.target = state.figure;
       if (reducedMotion) figure.snap();
@@ -387,21 +488,25 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
       unit.root.scale.setScalar(lerp(1, 0.3, f));
 
       if (unit.update(dt, reducedMotion)) active = true;
-      if (quote?.update(dt, reducedMotion, !reducedMotion)) active = true;
-      if (idle) active = true;
+      if (quote?.update(dt, reducedMotion, awake && touched)) active = true;
 
       if (unitLabels) {
         unitLabels.begin();
         let settling = false;
         for (const key of ['config', 'bom', 'quote', 'flow'] as const) {
-          const next = ease(weights[key], state.labels[key], dt);
+          // A label group is either wanted or not: the scroll position only decides
+          // which, and the fade itself runs on time. A visitor who stops between two
+          // chapters therefore never sees a half-transparent label.
+          const next = ease(weights[key], state.labels[key] > 0.5 ? 1 : 0, dt);
           if (Math.abs(next - weights[key]) > 0.002) settling = true;
           weights[key] = next;
         }
         if (settling) active = true;
+        // Within each group the labels are placed most important first: on a phone-sized
+        // stage a label that would cover an earlier one is left out.
         if (config) {
-          unitLabels.place(config.reach, unit.anchor('reach', point), weights.config);
           unitLabels.place(config.tool, unit.anchor('tool', point), weights.config);
+          unitLabels.place(config.reach, unit.anchor('reach', point), weights.config);
           unitLabels.place(config.power, unit.anchor('power', point), weights.config);
           unitLabels.place(config.ballast, unit.anchor('ballast', point), weights.config);
         }
@@ -422,8 +527,10 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
       if (team.update(dt, reducedMotion)) active = true;
       if (teamLabels && teamTags) {
         teamLabels.begin();
+        const seatFilled = phase === 3;
         const targets = {
-          team: phase === 0 ? 1 : 0,
+          // the tray is named in every phase, so the dots always read as people joining a team
+          team: 1,
           seat: phase === 0 || phase === 3 ? 1 : 0,
           pool: phase === 1 ? 1 : 0,
           flag: phase === 2 ? 1 : 0,
@@ -436,16 +543,17 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
           teamWeights[key] = next;
         }
         if (settling) active = true;
-        teamTags.team.set('Your team', '');
-        teamTags.seat.set(phase === 3 ? 'Seat filled' : 'Open seat', phase === 3 ? 'Onboarding coordinated' : 'Must-haves agreed');
+        teamTags.team.set('Your team', seatFilled ? 'Fully staffed' : 'One open seat');
+        teamTags.seat.set(seatFilled ? 'Seat filled' : 'Open seat', seatFilled ? 'Onboarding coordinated' : 'Must-haves agreed');
         teamTags.pool.set('Sourced', 'Interested and available');
-        teamTags.flag.set('Flagged', 'Gap to probe at interview');
-        teamTags.line.set('Shortlist', phase === 3 ? 'Interviews and feedback' : 'Meets the must-haves');
+        teamTags.flag.set('Flagged', 'Gap to probe in the interview');
+        teamTags.line.set('Shortlist', seatFilled ? 'Interviews and feedback' : 'Meets the must-haves');
+        // most important first, as for the machine labels
         teamLabels.place(teamTags.team, team.anchor('team', point), teamWeights.team);
-        teamLabels.place(teamTags.seat, team.anchor('seat', point), teamWeights.seat);
+        teamLabels.place(teamTags.line, team.anchor('line', point), teamWeights.line);
         teamLabels.place(teamTags.pool, team.anchor('pool', point), teamWeights.pool);
         teamLabels.place(teamTags.flag, team.anchor('flag', point), teamWeights.flag);
-        teamLabels.place(teamTags.line, team.anchor('line', point), teamWeights.line);
+        teamLabels.place(teamTags.seat, team.anchor('seat', point), teamWeights.seat);
       }
     }
     return active;
@@ -454,7 +562,7 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
   // ------------------------------------------------------------------ first frame
   teamWorld.visible = false;
   rig.mount(unitSlot);
-  applyScroll();
+  applyScroll(true);
   if (reducedMotion || progress > 0.4) {
     // Arriving mid-page or with reduced motion: show the settled state immediately.
     unit.snap();
@@ -465,14 +573,18 @@ export async function initStage(workbench: Workbench): Promise<boolean> {
     unit.startIntro();
   }
 
-  try {
-    // Compile shaders before the canvas is shown, so the first frames do not stutter.
-    await rig.renderer.compileAsync(rig.scene, rig.camera);
-  } catch {
-    // Not fatal: shaders will compile on first use instead.
-  }
+  // Compile shaders before the canvas is shown, so the first frames do not stutter. A
+  // failed compile is not fatal, and neither is a stalled one: whatever is not ready
+  // after the timeout compiles on first use instead, and the stage is shown regardless.
+  await Promise.race([
+    rig.renderer.compileAsync(rig.scene, rig.camera).catch(() => undefined),
+    new Promise((resolve) => setTimeout(resolve, COMPILE_TIMEOUT)),
+  ]);
 
-  rig.invalidate();
+  if (stopped) return true;
+  // Loading the page counts as a short burst of activity, enough for one pass of the sweep.
+  lastInput = performance.now() - (REST_AFTER - OPENING_ALLOWANCE);
+  rig.start();
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       rig.canvas.classList.add('is-ready');

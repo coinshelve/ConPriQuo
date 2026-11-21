@@ -19,8 +19,24 @@ export function initChrome() {
     menu.addEventListener('click', (event) => {
       if ((event.target as HTMLElement).closest('a')) setOpen(false);
     });
+    const isOpen = () => toggle.getAttribute('aria-expanded') === 'true';
+    // The toggle and the panel both live in the header, so "outside the header" means
+    // the visitor has moved on and the panel should not stay open over the page.
+    const outsideHeader = (node: EventTarget | null) =>
+      node instanceof Node && !(header ?? menu).contains(node) && !toggle.contains(node);
+
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setOpen(false, true);
+      if (event.key !== 'Escape' || !isOpen()) return;
+      // Focus goes back to the button only when closing would otherwise strand it
+      // inside the hidden panel. Elsewhere on the page it stays where the visitor put it.
+      setOpen(false, menu.contains(document.activeElement));
+    });
+    (header ?? menu).addEventListener('focusout', (event) => {
+      // A null relatedTarget is the window losing focus, which should not close anything.
+      if (isOpen() && outsideHeader(event.relatedTarget)) setOpen(false);
+    });
+    document.addEventListener('pointerdown', (event) => {
+      if (isOpen() && outsideHeader(event.target)) setOpen(false);
     });
     // Leaving the small-screen layout closes the panel so it cannot be stranded open.
     window.matchMedia('(min-width: 68.01rem)').addEventListener('change', (event) => {
@@ -33,14 +49,17 @@ export function initChrome() {
 
 /** Highlights the chapter in view on the rail and in the small-screen menu. */
 function initRail() {
-  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-rail] a[href^="#"]'));
+  const rail = document.querySelector<HTMLElement>('[data-rail]');
+  // The rail is hidden on small screens, where the menu carries the same chapter links,
+  // so both sets are marked from one reading of the scroll position.
+  const links = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>('[data-rail] a[href^="#"], [data-menu] a[data-menu-link][href^="#"]'),
+  );
   if (!links.length) return;
-  const rail = document.querySelector<HTMLElement>('[data-rail]')!;
-  const targets = links
-    .map((link) => document.getElementById(link.hash.slice(1)))
-    .filter((el): el is HTMLElement => Boolean(el));
+  const ids = Array.from(new Set(links.map((link) => link.hash.slice(1))));
+  const targets = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => Boolean(el));
   if (!targets.length) return;
-  const darkSections = Array.from(document.querySelectorAll<HTMLElement>('.on-navy'));
+  const lightSections = Array.from(document.querySelectorAll<HTMLElement>('main .theme-light, footer .theme-light'));
 
   let current = '';
   const update = () => {
@@ -49,15 +68,17 @@ function initRail() {
     for (const target of targets) {
       if (target.getBoundingClientRect().top <= line) active = target.id;
     }
-    rail.classList.toggle('is-visible', Boolean(active));
-    // Over the navy section the rail switches to light marks.
-    const middle = window.innerHeight / 2;
-    let overNavy = false;
-    for (const dark of darkSections) {
-      const box = dark.getBoundingClientRect();
-      if (box.top < middle + 130 && box.bottom > middle - 130) overNavy = true;
+    if (rail) {
+      rail.classList.toggle('is-visible', Boolean(active));
+      // The page is navy by default; over a light section the rail takes the light theme.
+      const middle = window.innerHeight / 2;
+      let overLight = false;
+      for (const light of lightSections) {
+        const box = light.getBoundingClientRect();
+        if (box.top < middle && box.bottom > middle) overLight = true;
+      }
+      rail.classList.toggle('theme-light', overLight);
     }
-    rail.classList.toggle('is-on-navy', overNavy);
     if (active === current) return;
     current = active;
     for (const link of links) {

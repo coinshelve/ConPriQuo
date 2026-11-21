@@ -13,7 +13,8 @@
     "check": "astro check",
     "test": "node --test tests/engine.test.mjs",
     "assets": "node tools/brand-assets.mjs && node tools/og-image.mjs",
-    "posters": "node tools/posters.mjs"
+    "posters": "node tools/posters.mjs",
+    "qa": "node tools/qa.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.6",

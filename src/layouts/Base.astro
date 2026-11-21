@@ -13,9 +13,19 @@ interface Props {
 }
 
 const { title, description, structuredData, path = '/' } = Astro.props;
-const canonical = new URL(path, Astro.site ?? company.url).href;
+// The base path is part of every asset URL, so the same source is correct at a
+// domain root and under a sub-path.
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const ogImage = new URL(`${base}/og/conpriquo-solutions.png`, Astro.site ?? company.url).href;
+const production = new URL(company.url).origin;
+const origin = (Astro.site ?? new URL(company.url)).origin;
+// A copy built for any other origin or sub-path (a preview host, a GitHub Pages project
+// site) must not compete with the real site in search: it is marked noindex and its
+// canonical and og:url still name the production address.
+const isProduction = origin === production && base === '';
+const robots = isProduction ? 'index, follow, max-image-preview:large, max-snippet:-1' : 'noindex, nofollow';
+const canonical = `${production}${path.startsWith('/') ? path : `/${path}`}`;
+// The share image is fetched from wherever this build is actually served.
+const ogImage = `${origin}${base}/og/conpriquo-solutions.png`;
 ---
 
 <!doctype html>
@@ -26,8 +36,8 @@ const ogImage = new URL(`${base}/og/conpriquo-solutions.png`, Astro.site ?? comp
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
-    <meta name="theme-color" content="#f4f1ea" />
+    <meta name="robots" content={robots} />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="light" />
     <meta name="format-detection" content="telephone=no" />
 

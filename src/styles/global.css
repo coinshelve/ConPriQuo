@@ -1,34 +1,19 @@
 /* ==========================================================================
    ConPriQuo Solutions: design tokens and base styles
-   Colours are sampled from the original logo file. Paper and ink do most of
-   the work; magenta, cyan and orange are functional signals, never wallpaper.
+
+   Every colour comes from the original logo file. The logo's navy is the ground
+   of the page; magenta, cyan and orange are functional signals. Two themes
+   share one set of semantic tokens, so a section only has to say whether it
+   sits on navy (the default) or on light.
    ========================================================================== */
 
 :root {
-  /* brand */
+  /* brand constants, sampled from the logo */
   --navy: #11123c;
   --magenta: #ed107e;
   --cyan: #00aeef;
   --orange: #f7941d;
-
-  /* surfaces */
-  --paper: #f4f1ea;
-  --paper-deep: #ebe7dd;
-  --sheet: #fbfaf6;
   --white: #ffffff;
-
-  /* ink: navy at fixed strengths, all AA on paper */
-  --ink: var(--navy);
-  --ink-2: rgb(17 18 60 / 0.76);
-  --ink-3: rgb(17 18 60 / 0.64);
-  --hair: rgb(17 18 60 / 0.16);
-  --hair-strong: rgb(17 18 60 / 0.34);
-  --wash: rgb(17 18 60 / 0.045);
-
-  /* on navy */
-  --on-navy: #f4f1ea;
-  --on-navy-2: rgb(244 241 234 / 0.74);
-  --hair-on-navy: rgb(244 241 234 / 0.2);
 
   /* type */
   --font-sans: var(--font-anek), 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -58,6 +43,40 @@
   --t-slow: 720ms;
 }
 
+/* On navy: the default. */
+:root,
+.theme-dark {
+  --ground: #11123c;
+  --ground-2: #0b0c2b;
+  --raise: #1c1d55;
+  --ink: #f3f5fb;
+  --ink-2: rgb(243 245 251 / 0.8);
+  --ink-3: rgb(243 245 251 / 0.66);
+  --hair: rgb(243 245 251 / 0.17);
+  --hair-strong: rgb(243 245 251 / 0.42);
+  --wash: rgb(243 245 251 / 0.07);
+  --sheet: #ffffff;
+}
+
+/* On light: a cool white drawn from the same blue family as the navy. */
+.theme-light {
+  --ground: #f3f5fb;
+  --ground-2: #e6eaf5;
+  --raise: #ffffff;
+  --ink: #11123c;
+  --ink-2: rgb(17 18 60 / 0.78);
+  --ink-3: rgb(17 18 60 / 0.66);
+  --hair: rgb(17 18 60 / 0.16);
+  --hair-strong: rgb(17 18 60 / 0.38);
+  --wash: rgb(17 18 60 / 0.05);
+  --sheet: #ffffff;
+}
+
+.theme-dark,
+.theme-light {
+  color: var(--ink);
+}
+
 @media (max-width: 47.99rem) {
   :root {
     --header-h: 3.9rem;
@@ -79,7 +98,7 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-h) + 1rem);
-  background: var(--paper);
+  background: var(--ground);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -88,9 +107,15 @@ html {
   }
 }
 
+/* While the enquiry dialog is open the page behind it does not scroll. */
+html.has-dialog {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--ground);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: var(--step-body);
@@ -155,18 +180,14 @@ button {
 }
 
 ::selection {
-  background: var(--navy);
-  color: var(--paper);
+  background: var(--magenta);
+  color: var(--white);
 }
 
 :focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
   border-radius: 1px;
-}
-
-.on-navy :focus-visible {
-  outline-color: var(--paper);
 }
 
 /* --------------------------------------------------------------------------
@@ -246,13 +267,6 @@ button {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-/* The name device: CONfigure, PRIce, QUOte. Emphasis is carried by weight so it
-   stays legible at any size; colour is added only where the type is large. */
-.syl {
-  font-weight: 700;
-  color: var(--ink);
-}
-
 /* Chapter tag: the logo's bar, then the chapter name in the system voice. */
 .tag {
   display: flex;
@@ -280,8 +294,58 @@ button {
   color: var(--ink);
 }
 
-.tag--on-navy {
-  color: var(--on-navy-2);
+/* A chapter heading is one element: the chapter's name as a kicker, then the
+   statement. The outline and each region's name therefore say which chapter it is. */
+.chapter {
+  display: grid;
+  gap: clamp(1.1rem, 2.4vh, 1.75rem);
+  font: inherit;
+}
+
+.chapter > .tag {
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.chapter > .h2 {
+  display: block;
+}
+
+/* The request a visitor is most likely to have at that point on the page. It opens
+   the enquiry dialog with that request already written. */
+.intent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  align-self: flex-start;
+  width: fit-content;
+  min-height: 2.75rem;
+  font-weight: 560;
+  font-stretch: 104%;
+  text-decoration: underline;
+  text-decoration-color: var(--hair-strong);
+  text-underline-offset: 0.3em;
+  transition: text-decoration-color var(--t-fast) linear;
+}
+
+.intent::before {
+  content: '';
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--magenta);
+  transition: width var(--t-med) var(--ease-out);
+}
+
+.intent:hover,
+.intent:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.intent:hover::before,
+.intent:focus-visible::before {
+  width: 1.6rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -313,8 +377,8 @@ button {
   top: 0.75rem;
   z-index: 100;
   padding: 0.7rem 1rem;
-  background: var(--navy);
-  color: var(--paper);
+  background: var(--white);
+  color: var(--navy);
   text-decoration: none;
   transform: translateY(-200%);
 }
@@ -336,8 +400,8 @@ button {
   gap: 0.8rem;
   min-height: 3.35rem;
   padding: 0.7rem 1.45rem 0.7rem 1.15rem;
-  background: var(--navy);
-  color: var(--paper);
+  background: var(--ink);
+  color: var(--ground);
   font-size: 1.04rem;
   font-weight: 560;
   font-stretch: 104%;
@@ -369,25 +433,37 @@ button {
   transform: translateY(1px);
 }
 
+/* The one action the page is built around. Magenta, as in the logo's bar. The label
+   is set large and bold so white on magenta stays within contrast requirements. */
+.btn--accent {
+  background: var(--magenta);
+  color: var(--white);
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.btn--accent::before {
+  background: var(--white);
+}
+
+.btn--accent:hover {
+  background: #d60d71;
+}
+
 .btn--line {
   background: transparent;
-  color: var(--navy);
-  box-shadow: inset 0 0 0 1.5px var(--navy);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
 }
 
 .btn--line::before {
   width: 0.5rem;
-  background: var(--navy);
+  background: var(--ink);
 }
 
 .btn--line:hover::before,
 .btn--line:focus-visible::before {
   width: 1.5rem;
-}
-
-.btn--on-navy {
-  background: var(--paper);
-  color: var(--navy);
 }
 
 .btn--small {
@@ -429,13 +505,15 @@ button {
   }
 
   /* Headlines arrive a line at a time, rising from behind their own baseline.
-     They stay hidden only until the script has split them into lines. */
+     They stay unseen only until the script has split them into lines. Opacity is
+     used, not visibility, so every section heading stays in the accessibility tree
+     and in heading navigation before the visitor has scrolled to it. */
   .js [data-lines]:not(.is-in) {
-    visibility: hidden;
+    opacity: 0;
   }
 
   .js [data-lines]:not(.is-in):has(.ln) {
-    visibility: visible;
+    opacity: 1;
   }
 
   .js [data-lines] .ln {
@@ -464,6 +542,10 @@ button {
     transform: none !important;
     visibility: visible !important;
   }
+
+  .reveal-fallback [data-lines] .ln > span {
+    transform: none !important;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -489,7 +571,7 @@ button {
 }
 
 .stage-leaders line {
-  stroke: var(--navy);
+  stroke: var(--ink);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
   opacity: 0;
@@ -502,7 +584,7 @@ button {
   display: grid;
   gap: 0.12rem;
   padding: 0.32rem 0.55rem 0.36rem;
-  background: var(--paper);
+  background: var(--raise);
   box-shadow: inset 0 0 0 1px var(--hair-strong);
   font-family: var(--font-mono);
   font-stretch: 92%;
@@ -513,14 +595,14 @@ button {
 }
 
 .stage-label__k {
-  font-size: 0.55rem;
-  letter-spacing: 0.09em;
+  font-size: 0.69rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .stage-label__v {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -535,7 +617,7 @@ button {
   color: var(--ink);
   letter-spacing: 0.02em;
   text-transform: none;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
 }
 
 @media (max-width: 47.99rem) {
@@ -544,11 +626,11 @@ button {
   }
 
   .stage-label__k {
-    font-size: 0.5rem;
+    font-size: 0.66rem;
   }
 
   .stage-label__v {
-    font-size: 0.58rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -560,5 +642,241 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Print. Paper has no scroll position, so nothing may wait to be revealed and
+   nothing may stay pinned: a sticky or fixed box would repeat or cover the text
+   on every sheet.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  [data-reveal],
+  [data-lines],
+  [data-lines] .ln > span {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    /* No easing into place either: the sheet is captured the moment it is laid out. */
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .site-header,
+  .story__stage,
+  .shortlist__stage {
+    position: static !important;
+  }
+
+  /* On-screen aids with no meaning on paper: the chapter rail, the skip link and the
+     callouts that are positioned over the 3D scene by script. */
+  .rail,
+  .skip-link,
+  .stage-leaders,
+  .stage-label {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Windows contrast themes (forced colors). The browser replaces every authored
+   color with the visitor's palette and drops box-shadows and gradients, which is
+   how most edges, selected states and drawn marks on this page are made. This
+   block puts them back as real borders and outlines in system colors.
+
+   Component styles are scoped with an attribute, which outranks a plain class
+   selector here, so declarations that must beat a component rule use !important.
+   Nothing in this block applies outside forced-colors mode.
+   -------------------------------------------------------------------------- */
+
+@media (forced-colors: active) {
+  /* Buttons: the fill is gone, so the shape needs an edge. */
+  .btn,
+  .btn--line {
+    border: 1px solid ButtonBorder;
+  }
+
+  .btn::before {
+    background: ButtonText;
+  }
+
+  a.btn::before {
+    background: LinkText;
+  }
+
+  /* Surfaces whose edge was a shadow. */
+  .site-header,
+  .site-menu {
+    border-bottom: 1px solid CanvasText;
+  }
+
+  .enquiry,
+  .doc {
+    border: 1px solid CanvasText !important;
+  }
+
+  /* Marks drawn as filled boxes: the menu bars and the dialog's close cross. */
+  .menu-toggle__bars i,
+  .enquiry__close-mark::before,
+  .enquiry__close-mark::after {
+    background: ButtonText !important;
+  }
+
+  /* Option radios in the configurator and the skill families in staffing. The native
+     input is transparent, so the label carries the selected state. */
+  .choice__mark {
+    border: 1.5px solid CanvasText;
+  }
+
+  .choice:has(input:checked),
+  .family:has(input:checked) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  /* The filled mark keeps the selection readable while the focus ring replaces the outline. */
+  .choice:has(input:checked) .choice__mark {
+    background: Highlight !important;
+    border-color: Highlight;
+  }
+
+  .family:has(input:checked) .family__dot {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .choice:has(input:focus-visible),
+  .family:has(input:focus-visible) {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 2px !important;
+  }
+
+  .choice:has(input[aria-disabled='true']) {
+    color: GrayText !important;
+  }
+
+  .choice:has(input[aria-disabled='true']) .choice__mark {
+    border-color: GrayText;
+  }
+
+  /* Quantity stepper. */
+  .stepper {
+    border: 1px solid ButtonBorder;
+  }
+
+  .stepper button {
+    border: 1px solid ButtonBorder;
+  }
+
+  .levers .stepper button[aria-disabled='true'],
+  .levers .stepper button[aria-disabled='true']:hover {
+    color: GrayText;
+    border-color: GrayText;
+  }
+
+  /* Discount slider. The track is a gradient and the thumb's ring is a shadow, so both
+     are redrawn in system colors. forced-color-adjust is inherited by the track and
+     thumb, which is what lets the gradient survive. */
+  .slider input {
+    forced-color-adjust: none;
+  }
+
+  .slider input::-webkit-slider-runnable-track {
+    box-sizing: border-box;
+    border: 1px solid CanvasText;
+    background: linear-gradient(to right, Highlight var(--fill), Canvas var(--fill)) !important;
+  }
+
+  .slider input::-moz-range-track {
+    box-sizing: border-box;
+    border: 1px solid CanvasText;
+    background: Canvas !important;
+  }
+
+  .slider input::-moz-range-progress {
+    background: Highlight !important;
+  }
+
+  .slider input::-webkit-slider-thumb {
+    background: CanvasText !important;
+    border-color: Canvas !important;
+    box-shadow: 0 0 0 1.5px CanvasText !important;
+  }
+
+  .slider input::-moz-range-thumb {
+    background: CanvasText !important;
+    border-color: Canvas !important;
+    box-shadow: 0 0 0 1.5px CanvasText !important;
+  }
+
+  .slider input:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 3px;
+  }
+
+  .slider__ticks i {
+    background: CanvasText !important;
+  }
+
+  /* Enquiry dialog fields: the edge and the focus ring were inset shadows. */
+  .field input,
+  .field select,
+  .field textarea {
+    border: 1px solid CanvasText !important;
+  }
+
+  .field.is-invalid input,
+  .field.is-invalid select {
+    border-width: 2px !important;
+  }
+
+  .field input:focus-visible,
+  .field select:focus-visible,
+  .field textarea:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 1px;
+  }
+
+  /* Position marks that show state by fill: the chapter rail, the staffing steps and
+     the approval route. */
+  .rail__mark,
+  .phase__mark {
+    background: CanvasText !important;
+  }
+
+  .rail a.is-current .rail__mark,
+  .phase.is-current .phase__mark {
+    background: Highlight !important;
+  }
+
+  .route__dot {
+    border: 2px solid CanvasText;
+    background: Canvas !important;
+  }
+
+  .route__node.is-done .route__dot {
+    background: CanvasText !important;
+  }
+
+  .route__node.is-required .route__dot {
+    border-color: Highlight;
+    background: Highlight !important;
+  }
+
+  /* Where the color itself is the information (the logo's bar, the service and skill
+     family dots, the approval stamp), the authored color is kept and given an edge so
+     it stays visible on any canvas. */
+  .tag::before,
+  .hero__services > span::before,
+  .family__dot,
+  .doc__stamp-dot {
+    forced-color-adjust: none;
+  }
+
+  .hero__services > span::before,
+  .family__dot,
+  .doc__stamp-dot {
+    border: 1px solid CanvasText;
   }
 }

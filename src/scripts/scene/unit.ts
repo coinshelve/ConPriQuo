@@ -131,6 +131,21 @@ export function extrudeFlat(shape: Shape, depth: number, bevel = 0.05) {
   return geometry;
 }
 
+/** A profile drawn in XY that stays upright, given its thickness along Z and centred there. */
+function extrudeUpright(shape: Shape, thickness: number, bevel = 0.03) {
+  const depth = thickness - bevel * 2;
+  const geometry = new ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelSegments: 2,
+    curveSegments: 6,
+  });
+  geometry.translate(0, 0, -depth / 2);
+  return geometry;
+}
+
 function hexPrism(radius: number, height: number, corner = 0.12) {
   const points = [0, 60, 120, 180, 240, 300].map((d) => polar(d, radius));
   return extrudeFlat(roundedShape(points, corner), height - 0.06, 0.03);
@@ -139,7 +154,7 @@ function hexPrism(radius: number, height: number, corner = 0.12) {
 /**
  * The HX-6: a fictional configurable handling unit built from the logo's own geometry.
  * The open hexagon is its base frame, the magenta bar is its arm, and the dots are the
- * tools it can carry.
+ * tools it can carry. On the navy stage the frame is white, as the mark reads reversed.
  */
 export class Unit {
   readonly root = new Group();
@@ -153,7 +168,7 @@ export class Unit {
   private armTip!: Mesh;
   private hanger!: Mesh;
   private reachArc!: Mesh;
-  private arcMaterial = new MeshBasicMaterial({ color: BRAND.navy, transparent: true, opacity: 0.3, depthWrite: false });
+  private arcMaterial = new MeshBasicMaterial({ color: BRAND.white, transparent: true, opacity: 0.3, depthWrite: false });
   private arcOpacity = new Spring(0, 80, 18);
   private evaluation: Evaluation | null = null;
   private anchors = new Map<string, Object3D>();
@@ -199,18 +214,18 @@ export class Unit {
 
     // ---- lower structure (does not turn)
     const frame = new Group();
-    frame.add(mesh(extrudeFlat(openHexShape(3.0, 0.58, 0.44), 0.4, 0.06), m.navy));
+    frame.add(mesh(extrudeFlat(openHexShape(3.0, 0.58, 0.44), 0.4, 0.06), m.frame));
     // a fixing at each closed corner of the frame gives the eye something to measure against
     const fixing = new CylinderGeometry(0.12, 0.12, 0.05, 20);
     for (const degrees of [60, 120, 180, 240, 300]) {
-      const pad = mesh(fixing, m.bone);
+      const pad = mesh(fixing, m.navy);
       const at = polar(degrees, 2.7);
       pad.position.set(at.x, 0.545, -at.y);
       frame.add(pad);
     }
     this.add({ bom: 'HX6-BASE', node: frame, rest: v(0, 0, 0), explode: v(0, 0, 0), present: always }, this.root);
 
-    const deck = mesh(hexPrism(2.28, 0.2), m.bone);
+    const deck = mesh(hexPrism(2.28, 0.2), m.deck);
     this.add({ bom: 'HX6-BASE', node: deck, rest: v(0, 0.16, 0), explode: v(0, 0.55, 0), present: always }, this.root);
 
     const slewRing = mesh(new CylinderGeometry(1.16, 1.2, 0.18, 64), m.navy);
@@ -262,15 +277,50 @@ export class Unit {
       present: (e) => e.selection.reach === 'long',
     });
 
-    this.hanger = mesh(new CylinderGeometry(0.045, 0.045, 0.62, 12), m.navy);
+    this.hanger = mesh(new CylinderGeometry(0.045, 0.045, 0.62, 12), m.frame);
     this.add({ bom: 'HX6-BASE', node: this.hanger, rest: v(ARM_STD, ARM_Y - 0.5, 0), explode: v(0, 2.5, 0), present: always, followsTip: true });
 
-    // ---- tools: the dots
+    // ---- tools: the dots, each modelled as the tool it is named after, so the choice
+    // changes the silhouette. Every head tops out where the hanger rod ends, and its
+    // jaws, pad or bowl face the camera side-on because they lie along the arm.
+    const toolCollar = new CylinderGeometry(0.2, 0.2, 0.1, 24);
+
+    // gripper: a compact body carrying two opposed jaws that close towards each other
     const gripper = new Group();
-    gripper.add(mesh(new SphereGeometry(0.42, 48, 32), m.cyan));
-    const collar = mesh(new CylinderGeometry(0.2, 0.2, 0.1, 24), m.navy);
-    collar.position.y = 0.42;
-    gripper.add(collar);
+    const gripperBody = mesh(new RoundedBoxGeometry(1.06, 0.34, 0.52, 4, 0.1), m.cyan);
+    gripperBody.position.y = 0.19;
+    const jawProfile = [
+      new Vector2(0.27, 0.08),
+      new Vector2(0.51, 0.08),
+      new Vector2(0.58, -0.26),
+      new Vector2(0.35, -0.51),
+      new Vector2(0.19, -0.51),
+      new Vector2(0.19, -0.39),
+      new Vector2(0.36, -0.21),
+    ];
+    const jawRight = mesh(extrudeUpright(roundedShape(jawProfile, 0.07), 0.32), m.cyan);
+    const jawLeft = mesh(
+      extrudeUpright(
+        roundedShape(
+          jawProfile.map((p) => new Vector2(-p.x, p.y)),
+          0.07,
+        ),
+        0.32,
+      ),
+      m.cyan,
+    );
+    gripper.add(gripperBody, jawRight, jawLeft);
+    // the pins the jaws turn on show as two dark points on the body
+    const pinGeometry = new CylinderGeometry(0.075, 0.075, 0.56, 16);
+    for (const x of [-0.36, 0.36]) {
+      const pin = mesh(pinGeometry, m.navy);
+      pin.rotation.x = Math.PI / 2;
+      pin.position.set(x, 0.17, 0);
+      gripper.add(pin);
+    }
+    const gripperCollar = mesh(toolCollar, m.navy);
+    gripperCollar.position.y = 0.4;
+    gripper.add(gripperCollar);
     this.add({
       bom: 'HX6-TL-GRP',
       node: gripper,
@@ -280,32 +330,64 @@ export class Unit {
       followsTip: true,
     });
 
-    // vacuum lifter: a flat suction pad
+    // vacuum lifter: a wide, flat suction pad under a short bellows
     const vacuum = new Group();
-    vacuum.add(mesh(new CylinderGeometry(0.56, 0.56, 0.24, 48), m.orange));
-    const vacuumCap = mesh(new CylinderGeometry(0.2, 0.26, 0.16, 24), m.navy);
-    vacuumCap.position.y = 0.2;
-    vacuum.add(vacuumCap);
+    const padLip = mesh(new CylinderGeometry(0.7, 0.7, 0.08, 48), m.orange);
+    padLip.position.y = -0.31;
+    const padCup = mesh(new CylinderGeometry(0.4, 0.66, 0.13, 48), m.orange);
+    padCup.position.y = -0.205;
+    const bellowsCore = mesh(new CylinderGeometry(0.17, 0.17, 0.42, 24), m.navy);
+    bellowsCore.position.y = 0.05;
+    vacuum.add(padLip, padCup, bellowsCore);
+    const foldGeometry = new TorusGeometry(0.19, 0.055, 10, 32);
+    for (const y of [-0.07, 0.06, 0.19]) {
+      const fold = mesh(foldGeometry, m.orange);
+      fold.rotation.x = Math.PI / 2;
+      fold.position.y = y;
+      vacuum.add(fold);
+    }
+    const vacuumCollar = mesh(toolCollar, m.navy);
+    vacuumCollar.position.y = 0.3;
+    vacuum.add(vacuumCollar);
     this.add({
       bom: 'HX6-TL-VAC',
       node: vacuum,
-      rest: v(ARM_STD, ARM_Y - 1.02, 0),
+      rest: v(ARM_STD, ARM_Y - 1.13, 0),
       explode: v(0.6, 1.25, 0),
       present: (e) => e.selection.tool === 'vacuum',
       followsTip: true,
     });
 
+    // hook: a block with its pin, a shank, and a bowl that opens upwards to one side.
+    // The bowl is centred under the block, the way a load hook hangs.
     const hook = new Group();
-    const hookArc = mesh(new TorusGeometry(0.24, 0.075, 16, 40, Math.PI * 1.45), m.navy);
-    hookArc.rotation.z = Math.PI * 0.82;
-    hookArc.position.y = -0.2;
-    const hookBlock = mesh(new RoundedBoxGeometry(0.34, 0.3, 0.26, 3, 0.06), m.navy);
-    hookBlock.position.y = 0.16;
-    hook.add(hookArc, hookBlock);
+    const bowlR = 0.24;
+    const tubeR = 0.08;
+    const bowlFrom = (140 * Math.PI) / 180;
+    const bowlSweep = Math.PI * 1.42;
+    const hookArc = mesh(new TorusGeometry(bowlR, tubeR, 14, 40, bowlSweep), m.frame);
+    hookArc.rotation.z = bowlFrom;
+    // rounded ends: one closes the tip, one hides the joint between bowl and shank
+    const endGeometry = new SphereGeometry(tubeR, 16, 12);
+    const tip = mesh(endGeometry, m.frame);
+    tip.position.set(Math.cos(bowlFrom + bowlSweep) * bowlR, Math.sin(bowlFrom + bowlSweep) * bowlR, 0);
+    const joint = mesh(endGeometry, m.frame);
+    joint.position.set(Math.cos(bowlFrom) * bowlR, Math.sin(bowlFrom) * bowlR, 0);
+    // the shank leaves the bowl along its tangent and meets the block on the centre line
+    const shankLength = -joint.position.x / Math.sin(bowlFrom);
+    const shank = mesh(new CylinderGeometry(tubeR, tubeR, shankLength, 14), m.frame);
+    shank.rotation.z = bowlFrom - Math.PI;
+    shank.position.set(joint.position.x / 2, joint.position.y - (Math.cos(bowlFrom) * shankLength) / 2, 0);
+    const hookBlock = mesh(new RoundedBoxGeometry(0.44, 0.32, 0.3, 3, 0.08), m.frame);
+    hookBlock.position.y = 0.51;
+    const hookPin = mesh(new CylinderGeometry(0.085, 0.085, 0.34, 16), m.navy);
+    hookPin.rotation.x = Math.PI / 2;
+    hookPin.position.y = 0.51;
+    hook.add(hookArc, tip, joint, shank, hookBlock, hookPin);
     this.add({
       bom: 'HX6-TL-HOK',
       node: hook,
-      rest: v(ARM_STD, ARM_Y - 1.0, 0),
+      rest: v(ARM_STD, ARM_Y - 1.45, 0),
       explode: v(0.6, 1.25, 0),
       present: (e) => e.selection.tool === 'hook',
       followsTip: true,
@@ -325,7 +407,7 @@ export class Unit {
     // ---- power
     const diesel = new Group();
     diesel.add(mesh(new RoundedBoxGeometry(0.92, 0.3, 1.02, 3, 0.07), m.bone));
-    const stack = mesh(new CylinderGeometry(0.075, 0.075, 0.56, 16), m.navy);
+    const stack = mesh(new CylinderGeometry(0.075, 0.075, 0.56, 16), m.frame);
     stack.position.set(-0.28, 0.4, -0.3);
     diesel.add(stack);
     this.add({
@@ -493,7 +575,7 @@ export class Unit {
 
     // working radius follows the reach
     this.reachArc.scale.setScalar(reach);
-    this.arcMaterial.opacity = Math.max(0, this.arcOpacity.value) * 0.32;
+    this.arcMaterial.opacity = Math.max(0, this.arcOpacity.value) * 0.55;
     this.reachArc.visible = this.arcMaterial.opacity > 0.004;
     const reachAnchor = this.anchors.get('reach');
     if (reachAnchor) reachAnchor.position.set(reach * Math.cos(0.62), 0, reach * Math.sin(0.62));

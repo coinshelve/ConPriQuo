@@ -47,6 +47,21 @@ function tickNumber(el: HTMLElement, to: number, prefix = '') {
   requestAnimationFrame(frame);
 }
 
+/** "sales manager" or "sales manager and finance director": whoever has to approve. */
+function approverRoles(e: Evaluation) {
+  return e.approvals
+    .filter((step) => step.required)
+    .map((step) => step.role.toLowerCase())
+    .join(' and ');
+}
+
+const unitCount = (quantity: number) => `${quantity} ${quantity === 1 ? 'unit' : 'units'}`;
+
+/** Only these kinds are listed under "Rules that fired"; pricing and approval show elsewhere. */
+const listedRules = (e: Evaluation) =>
+  e.rules.filter((rule) => rule.kind === 'constraint' || rule.kind === 'recommendation' || rule.kind === 'bom');
+const ruleKey = (rule: Pick<FiredRule, 'id' | 'text'>) => `${rule.id}|${rule.text}`;
+
 function flash(el: Element) {
   el.classList.add('is-new');
   // The class is removed on the next frames so the CSS transition can fade the highlight.
@@ -72,14 +87,22 @@ export function initWorkbench(): Workbench {
   const route = root.querySelector<HTMLElement>('[data-route]');
   const stamp = root.querySelector<HTMLElement>('[data-stamp]');
   let previousParts = new Set(evaluation.bom.map((line) => line.part));
-  let previousRules = new Set(evaluation.rules.map((rule) => rule.id + rule.text));
+  // What the rules list currently shows. The server rendered the default selection.
+  let ruleSignature = listedRules(evaluation).map(ruleKey).join('\n');
+  rulesList?.querySelectorAll<HTMLElement>('li[data-kind]').forEach((li) => {
+    const [id = '', text = ''] = Array.from(li.children, (child) => child.textContent?.trim() ?? '');
+    li.dataset.key = ruleKey({ id, text });
+  });
 
   // seed numeric outputs so the first change animates from the rendered value
   const seed = (key: string, value: number) =>
     root.querySelectorAll<HTMLElement>(`[data-out="${key}"]`).forEach((el) => (el.dataset.value = String(value)));
 
-  const issued = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date());
+  const issued = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
   setText(root, 'issued', issued);
+
+  const atLimit = (button: HTMLButtonElement, quantity: number) =>
+    Number(button.dataset.qty) < 0 ? quantity <= 1 : quantity >= MAX_QUANTITY;
 
   function renderOptions(e: Evaluation) {
     const groups = { reach: e.reach, tool: e.tool, power: e.power } as const;
@@ -110,6 +133,7 @@ export function initWorkbench(): Workbench {
   function ruleItem(rule: FiredRule) {
     const li = document.createElement('li');
     li.dataset.kind = rule.kind;
+    li.dataset.key = ruleKey(rule);
     const id = document.createElement('span');
     id.className = 'rules__id mono';
     id.textContent = rule.id;
@@ -121,15 +145,26 @@ export function initWorkbench(): Workbench {
 
   function renderRules(e: Evaluation) {
     if (!rulesList) return;
-    const shown = e.rules.filter((rule) => rule.kind === 'constraint' || rule.kind === 'recommendation' || rule.kind === 'bom');
-    const keys = new Set(e.rules.map((rule) => rule.id + rule.text));
-    rulesList.querySelectorAll('li[data-kind]').forEach((li) => li.remove());
+    const shown = listedRules(e);
+    // The list is a polite live region. Rebuilding it on every slider step made screen
+    // readers repeat rules that had not changed, so it is only touched when the set of
+    // rules changes, and then only the difference is written.
+    const signature = shown.map(ruleKey).join('\n');
+    if (signature === ruleSignature) return;
+    ruleSignature = signature;
+    const wanted = new Set(shown.map(ruleKey));
+    const kept = new Set<string>();
+    rulesList.querySelectorAll<HTMLElement>('li[data-kind]').forEach((li) => {
+      const key = li.dataset.key ?? '';
+      if (wanted.has(key) && !kept.has(key)) kept.add(key);
+      else li.remove();
+    });
     for (const rule of shown) {
+      if (kept.has(ruleKey(rule))) continue;
       const item = ruleItem(rule);
-      if (!previousRules.has(rule.id + rule.text)) item.classList.add('is-new');
+      item.classList.add('is-new');
       rulesList.insertBefore(item, rulesEmpty);
     }
-    previousRules = keys;
   }
 
   function renderBom(e: Evaluation) {
@@ -175,7 +210,7 @@ export function initWorkbench(): Workbench {
     tick('mapNet', p.unitNet);
 
     setText(root!, 'quantity', String(p.quantity));
-    setText(root!, 'quantity2', String(p.quantity));
+    setText(root!, 'quantity2', unitCount(p.quantity));
     setText(root!, 'mapQty', String(p.quantity));
     setText(root!, 'mapLines', String(e.bom.length));
     setText(root!, 'volumePercent', `${p.volumePercent}%`);
@@ -186,16 +221,20 @@ export function initWorkbench(): Workbench {
     if (discountInput) {
       if (Number(discountInput.value) !== p.negotiatedPercent) discountInput.value = String(p.negotiatedPercent);
       discountInput.style.setProperty('--fill', `${(p.negotiatedPercent / MAX_DISCOUNT) * 100}%`);
-      discountInput.setAttribute('aria-valuetext', `${p.negotiatedPercent} percent`);
+      // The slider's own announcement carries the consequence, so nothing else has to
+      // speak while it is being dragged.
+      const authority = e.approvalRequired ? `needs approval from ${approverRoles(e)}` : 'within seller authority';
+      discountInput.setAttribute('aria-valuetext', `${p.negotiatedPercent} percent, total ${money(p.total)}, ${authority}`);
     }
     root!.querySelectorAll<HTMLButtonElement>('[data-qty]').forEach((button) => {
-      const delta = Number(button.dataset.qty);
-      button.disabled = delta < 0 ? p.quantity <= 1 : p.quantity >= MAX_QUANTITY;
+      // aria-disabled, not disabled: a disabled button drops keyboard focus the moment
+      // the limit is reached. The click handler ignores the press instead.
+      if (atLimit(button, p.quantity)) button.setAttribute('aria-disabled', 'true');
+      else button.removeAttribute('aria-disabled');
     });
   }
 
   function renderApprovals(e: Evaluation) {
-    const needed = e.approvals.filter((step) => step.required);
     if (route) {
       route.dataset.state = e.approvalRequired ? 'required' : 'clear';
       for (const step of e.approvals) {
@@ -204,8 +243,8 @@ export function initWorkbench(): Workbench {
       }
     }
     const status = e.approvalRequired
-      ? `Needs sign-off from ${needed.map((step) => step.role.toLowerCase()).join(' and ')}.`
-      : 'Within seller authority. No sign-off needed.';
+      ? `Needs approval from ${approverRoles(e)}.`
+      : 'Within seller authority. No approval needed.';
     setText(root!, 'approvalStatus', status);
     if (stamp) stamp.dataset.state = e.approvalRequired ? 'pending' : 'approved';
     setText(root!, 'stampText', e.approvalRequired ? 'Awaiting approval' : 'Approved within seller authority');
@@ -244,6 +283,9 @@ export function initWorkbench(): Workbench {
   seed('discountTotal', p.listTotal - p.total);
   seed('mapTotal', p.total);
   seed('mapNet', p.unitNet);
+  // An <output> is a live region by default. The slider already announces the same
+  // figure through aria-valuetext, so the visible readout stays silent.
+  root.querySelectorAll<HTMLElement>('[data-out="discount"]').forEach((el) => el.setAttribute('aria-live', 'off'));
   renderPricing(evaluation);
   renderOptions(evaluation);
 
@@ -271,25 +313,29 @@ export function initWorkbench(): Workbench {
     }
     update({ [input.name]: input.value } as Partial<Selection>);
   });
-  // Arrow keys move between radios natively; skip over withdrawn options.
+  // Arrow keys move between the radios of a group. Natively they would also select a
+  // withdrawn option, so the move is handled here: focus lands on a withdrawn option
+  // (its reason is then read through aria-describedby) but the selection stays put.
   bench?.addEventListener('keydown', (event) => {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    // Alt, Ctrl and Meta with an arrow belong to the browser (history, word and tab moves).
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const input = event.target as HTMLInputElement;
     if (input.type !== 'radio') return;
     const group = Array.from(bench.querySelectorAll<HTMLInputElement>(`input[name="${input.name}"]`));
     const step = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
-    let index = group.indexOf(input);
-    for (let i = 0; i < group.length; i++) {
-      index = (index + step + group.length) % group.length;
-      if (group[index].getAttribute('aria-disabled') !== 'true') break;
-    }
+    const next = group[(group.indexOf(input) + step + group.length) % group.length];
     event.preventDefault();
-    group[index].focus();
-    update({ [input.name]: group[index].value } as Partial<Selection>);
+    next.focus();
+    if (next.getAttribute('aria-disabled') === 'true') return;
+    update({ [input.name]: next.value } as Partial<Selection>);
   });
 
   root.querySelectorAll<HTMLButtonElement>('[data-qty]').forEach((button) => {
-    button.addEventListener('click', () => update({ quantity: selection.quantity + Number(button.dataset.qty) }));
+    button.addEventListener('click', () => {
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      update({ quantity: selection.quantity + Number(button.dataset.qty) });
+    });
   });
   discountInput?.addEventListener('input', () => update({ discount: Number(discountInput.value) }));
 

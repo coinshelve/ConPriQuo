@@ -5,12 +5,13 @@
  * Align, Source, Screen, Coordinate, exactly as the company describes it.
  */
 import teamPoster from '../assets/posters/team-3.webp';
+import { company } from '../data/site';
 
 const families = [
   {
     id: 'apps',
     name: 'Enterprise applications',
-    detail: 'Oracle CPQ consultants and BML developers, Oracle CX, Salesforce, ERP and CRM specialists, technical or functional.',
+    detail: 'Oracle CPQ consultants and BML developers. Oracle CX, Salesforce, ERP and CRM specialists, technical or functional.',
   },
   {
     id: 'engineering',
@@ -20,7 +21,7 @@ const families = [
   {
     id: 'cloud',
     name: 'Cloud, data and operations',
-    detail: 'Cloud and DevOps engineers, data specialists and production support.',
+    detail: 'Cloud and DevOps engineers, data specialists and production support engineers.',
   },
 ];
 
@@ -28,17 +29,17 @@ const steps = [
   {
     id: 'align',
     name: 'Align',
-    text: 'We agree the must-have skills, the scope of the role, location, start date and commercial terms before anyone is contacted.',
+    text: 'We agree on must-have skills, scope, location, start date and commercial terms before anyone is contacted.',
   },
   {
     id: 'source',
     name: 'Source',
-    text: 'We look for people with relevant project experience, then confirm that they are interested and available.',
+    text: 'We find people with relevant project experience and confirm they are interested and available.',
   },
   {
     id: 'screen',
     name: 'Screen',
-    text: 'We assess hands-on experience against the must-haves and flag the gaps worth probing at interview.',
+    text: 'We assess hands-on experience against the must-haves and flag the gaps worth probing in the interview.',
   },
   {
     id: 'coordinate',
@@ -52,21 +53,21 @@ const steps = [
   <div class="wrap">
     <div class="staffing__intro">
       <div class="staffing__lede">
-        <p class="tag"><span>Staffing</span></p>
-        <h2 class="h2" id="staffing-title" data-lines>Sometimes the gap is not a project. It is a person.</h2>
+        <h2 class="chapter" id="staffing-title">
+          <span class="tag"><span>IT staffing<span class="visually-hidden">: </span></span></span>
+          <span class="h2" data-lines>Sometimes the missing part is a person.</span>
+        </h2>
       </div>
       <div class="staffing__body">
         <p class="lead" data-reveal>
-          Programmes stall for want of one BML developer, one integration engineer, one Salesforce administrator
-          who has done it before. We provide contract staffing and staff augmentation to enterprises and delivery
-          partners, and we build every shortlist against the role you actually need filled. Choose a project when
-          you want an outcome delivered. Choose a specialist when the work is yours to direct.
+          One BML developer. One integration engineer. One Salesforce administrator who has done it before.
+          Contract staffing and staff augmentation, shortlisted against the role, not the keyword.
         </p>
       </div>
     </div>
 
     <fieldset class="families" data-families data-reveal>
-      <legend class="label">Skills we place. Choose one to see a shortlist form.</legend>
+      <legend class="label">Pick a skill family. Watch a shortlist take shape.</legend>
       <div class="families__list">
         {
           families.map((family, index) => (
@@ -81,13 +82,7 @@ const steps = [
           ))
         }
       </div>
-      <p class="families__note">
-        <span class="family__dot family__dot--navy" aria-hidden="true"></span>
-        <span>
-          <b>Project ramp-ups.</b> When a team has to grow quickly, shortlists are prioritised by skill fit,
-          availability and start date.
-        </span>
-      </p>
+      <p class="visually-hidden" role="status" data-family-status></p>
     </fieldset>
 
     <div class="shortlist">
@@ -105,23 +100,48 @@ const steps = [
         {
           steps.map((step, index) => (
             <li class="phase" data-phase={step.id} data-index={index}>
-              <span class="phase__mark" aria-hidden="true" />
               <h3 class="phase__name">{step.name}</h3>
               <p class="phase__text">{step.text}</p>
             </li>
           ))
         }
         <li class="shortlist__cta">
-          <a class="btn" href="#brief" data-brief-path="staffing">Send a role requirement</a>
-          <p class="small">The form that follows is the Align step. Fill it in and the shortlist has started.</p>
+          <a
+            class="btn btn--accent"
+            href={`mailto:${company.email}`}
+            data-enquiry
+            data-enquiry-service="Contract specialists for Oracle CPQ, Oracle CX or Salesforce"
+            data-family-cta
+          >
+            Request specialists
+          </a>
         </li>
       </ol>
     </div>
   </div>
 </section>
 
+<script>
+  // The chosen skill family travels with the request, and is announced for anyone who
+  // cannot see the shortlist scene change.
+  const root = document.querySelector<HTMLElement>('[data-staffing]');
+  const cta = root?.querySelector<HTMLElement>('[data-family-cta]');
+  const status = root?.querySelector<HTMLElement>('[data-family-status]');
+  root?.querySelectorAll<HTMLInputElement>('input[name="family"]').forEach((input) => {
+    const apply = (announce: boolean) => {
+      if (!input.checked) return;
+      const name = input.closest('label')?.querySelector('.family__name')?.textContent?.trim() ?? '';
+      if (cta) cta.dataset.enquiryNote = `Skill family: ${name}.`;
+      if (status && announce) status.textContent = `Shortlist shown for ${name}.`;
+    };
+    apply(false);
+    input.addEventListener('change', () => apply(true));
+  });
+</script>
+
 <style>
   .staffing {
+    background: var(--ground);
     padding-block: var(--section) calc(var(--section) * 0.7);
   }
 
@@ -137,7 +157,7 @@ const steps = [
     gap: clamp(1.1rem, 2.4vh, 1.75rem);
   }
 
-  /* ---- skill families: three of the logo's dots, plus the navy one for ramp-ups ---- */
+  /* ---- skill families: three of the logo's dots ---- */
   .families {
     margin: clamp(3rem, 6vw, 5rem) 0 0;
     padding: 0;
@@ -152,7 +172,8 @@ const steps = [
   .families__list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--hair);
   }
 
   .family {
@@ -182,7 +203,7 @@ const steps = [
   }
 
   .family:has(input:focus-visible) {
-    outline: 2px solid var(--navy);
+    outline: 2px solid var(--ink);
     outline-offset: -2px;
   }
 
@@ -192,8 +213,8 @@ const steps = [
     height: 1.5rem;
     margin-top: 0.1rem;
     border-radius: 50%;
-    background: var(--dot, var(--navy));
-    box-shadow: inset 0 0 0 1.5px var(--navy);
+    background: var(--dot, var(--ink));
+    box-shadow: inset 0 0 0 1.5px var(--ink);
     transform: scale(0.62);
     transition: transform var(--t-med) var(--ease-seat);
   }
@@ -238,30 +259,6 @@ const steps = [
     color: var(--ink-2);
   }
 
-  .families__note {
-    display: flex;
-    gap: 1rem;
-    align-items: start;
-    padding-top: 1.3rem;
-    border-top: 1px solid var(--hair);
-    font-size: var(--step-small);
-    color: var(--ink-2);
-  }
-
-  .families__note > span:last-child {
-    max-width: 42rem;
-  }
-
-  .family__dot--navy {
-    --dot: var(--navy);
-    transform: scale(0.62);
-  }
-
-  .families__note b {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
   /* ---- shortlist: sticky stage and the four steps ---- */
   .shortlist {
     display: grid;
@@ -275,7 +272,7 @@ const steps = [
     z-index: 5;
     height: clamp(13rem, 36svh, 20rem);
     margin-inline: calc(var(--gutter) * -1);
-    background: var(--paper);
+    background: var(--ground);
     box-shadow: 0 1px 0 var(--hair);
   }
 
@@ -342,30 +339,35 @@ const steps = [
     color: var(--ink-3);
   }
 
-  .phase__mark {
-    position: absolute;
-    left: 0;
-    top: calc(clamp(2.25rem, 7vh, 4rem) + 0.55rem);
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 0.5rem;
-    background: var(--hair-strong);
-    transition:
-      width var(--t-med) var(--ease-out),
-      background-color var(--t-med) linear;
-  }
-
-  .phase.is-current .phase__mark {
-    width: 2.1rem;
-    background: var(--magenta);
-  }
-
   .phase__name {
+    position: relative;
     font-size: clamp(1.9rem, 1.3rem + 2.4vw, 3.2rem);
     font-weight: 600;
     font-stretch: 112%;
     letter-spacing: -0.03em;
     line-height: 1;
+  }
+
+  /* The mark belongs to the heading, so it sits on the heading's own line at every
+     size. It lengthens into the logo's bar for the phase the scene is showing. */
+  .phase__name::before {
+    content: '';
+    position: absolute;
+    left: -3.4rem;
+    top: 0.46em;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--ink-3);
+    transition:
+      width var(--t-med) var(--ease-out),
+      background-color var(--t-med) linear;
+  }
+
+  .phase.is-current .phase__name::before,
+  :global(html:not(.js)) .phase__name::before {
+    width: 2.1rem;
+    background: var(--magenta);
   }
 
   .phase__text {
@@ -379,6 +381,13 @@ const steps = [
     gap: 0.9rem;
     justify-items: start;
     padding: 1rem 0 0 3.4rem;
+  }
+
+  /* A short, wide screen has no room for a pinned stage. */
+  @media (max-width: 63.99rem) and (max-height: 30rem) {
+    .shortlist__stage {
+      position: static;
+    }
   }
 
   @media (min-width: 64rem) {

@@ -1,7 +1,6 @@
 ---
 /**
- * How a project runs. Four phases on one line that fills as the visitor reads along
- * it, then continues past handover into support.
+ * How a project runs: four phases, each under its own length of the logo's bar.
  */
 const phases = [
   {
@@ -14,30 +13,25 @@ const phases = [
   },
   {
     name: 'Test and release',
-    text: 'Validate key scenarios, support user acceptance and agree the cutover plan.',
+    text: 'Validate key scenarios, support user acceptance and agree on the cutover plan.',
   },
   {
     name: 'Handover',
-    text: 'Document the solution, train users or support teams and agree who owns what after launch.',
+    text: 'Document the solution, train users or support teams and agree on who owns what after launch.',
   },
 ];
 ---
 
-<section class="delivery" id="delivery" aria-labelledby="delivery-title" data-delivery>
+<section class="delivery theme-light" id="delivery" aria-labelledby="delivery-title">
   <div class="wrap">
     <div class="delivery__intro">
-      <div class="delivery__lede">
-        <p class="tag"><span>Delivery</span></p>
-        <h2 class="h2" id="delivery-title" data-lines>Before each workstream starts, we agree what done looks like.</h2>
-      </div>
-      <p class="body" data-reveal>
-        Deliverables and acceptance criteria are written down at the start of each workstream, so progress is
-        something you can check rather than something you are told.
-      </p>
+      <h2 class="chapter" id="delivery-title">
+        <span class="tag"><span>Project delivery<span class="visually-hidden">: </span></span></span>
+        <span class="h2" data-lines>We define done before we start.</span>
+      </h2>
     </div>
 
     <div class="run" data-reveal>
-      <div class="run__track" aria-hidden="true"><span class="run__fill" data-run-fill></span></div>
       <ol class="run__phases">
         {
           phases.map((phase) => (
@@ -48,92 +42,43 @@ const phases = [
           ))
         }
       </ol>
-      <p class="run__after">
-        <span class="run__after-dot" aria-hidden="true"></span>
-        <span>
-          <b>Support after launch.</b> When you want it, we stay on the application: troubleshooting production
-          issues, tuning performance and releasing enhancements as the business changes.
-        </span>
-      </p>
     </div>
   </div>
 </section>
 
-<script>
-  // The line fills in step with how far the visitor has read through the section.
-  const root = document.querySelector<HTMLElement>('[data-delivery]');
-  const fill = root?.querySelector<HTMLElement>('[data-run-fill]');
-  if (root && fill) {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const track = fill.parentElement!;
-    let queued = false;
-    const update = () => {
-      queued = false;
-      const rect = track.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const t = Math.min(1, Math.max(0, (vh * 0.82 - rect.top) / (vh * 0.5)));
-      fill.style.setProperty('--run', reduced ? '1' : t.toFixed(4));
-    };
-    const onScroll = () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-  }
-</script>
-
 <style>
   .delivery {
-    background: var(--paper-deep);
+    background: var(--ground);
     padding-block: var(--section);
   }
 
   .delivery__intro {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: clamp(1.5rem, 5vw, 6rem);
-    align-items: end;
-  }
-
-  .delivery__lede {
-    display: grid;
-    gap: clamp(1.1rem, 2.4vh, 1.75rem);
+    max-width: 52rem;
   }
 
   .run {
     margin-top: clamp(3rem, 7vw, 6rem);
   }
 
-  .run__track {
-    position: relative;
-    height: 0.5rem;
-    border-radius: 0.5rem;
-    background: var(--hair);
-  }
-
-  .run__fill {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: var(--magenta);
-    transform-origin: left center;
-    transform: scaleX(var(--run, 1));
-  }
-
   .run__phases {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: clamp(1.25rem, 3vw, 3rem);
-    margin-top: 1.6rem;
   }
 
   .run__phase {
     display: grid;
     gap: 0.7rem;
     align-content: start;
+  }
+
+  /* One length of the logo's bar per phase: four segments, in order. */
+  .run__phase::before {
+    content: '';
+    height: 0.5rem;
+    margin-bottom: 0.9rem;
+    border-radius: 0.5rem;
+    background: var(--magenta);
   }
 
   .run__name {
@@ -151,37 +96,7 @@ const phases = [
     text-wrap: pretty;
   }
 
-  .run__after {
-    display: flex;
-    gap: 1rem;
-    align-items: start;
-    max-width: 44rem;
-    margin-top: clamp(2.5rem, 5vw, 4rem);
-    padding-top: 1.4rem;
-    border-top: 1px solid var(--hair-strong);
-    color: var(--ink-2);
-  }
-
-  .run__after-dot {
-    flex: none;
-    width: 1rem;
-    height: 1rem;
-    margin-top: 0.35rem;
-    border-radius: 50%;
-    background: var(--navy);
-  }
-
-  .run__after b {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
   @media (max-width: 60rem) {
-    .delivery__intro {
-      grid-template-columns: minmax(0, 1fr);
-      align-items: start;
-    }
-
     .run__phases {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       row-gap: 2.25rem;
@@ -191,6 +106,11 @@ const phases = [
   @media (max-width: 34rem) {
     .run__phases {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Stacked, a full-width bar per phase is too heavy: each keeps a short one. */
+    .run__phase::before {
+      width: 2.1rem;
     }
   }
 </style>

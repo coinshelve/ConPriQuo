@@ -107,6 +107,16 @@ test('approval routing follows the negotiated discount', () => {
   const twoLevels = select({ discount: finance.threshold + 1 });
   assert.deepEqual(twoLevels.approvals.map((step) => step.required), [true, true]);
   assert.ok(twoLevels.rules.some((rule) => rule.kind === 'approval'));
+  // The rule uses the same approval wording as the route status on the page.
+  const approval = twoLevels.rules.find((rule) => rule.kind === 'approval');
+  assert.match(approval.text, /Needs approval from sales manager and finance director\.$/);
+  assert.ok(!twoLevels.rules.some((rule) => /sign-?off/i.test(rule.text)));
+});
+
+test('long reach is listed as an extension of the base arm, not a second arm', () => {
+  const e = select({ reach: 'long' });
+  const arm = e.bom.find((line) => line.part === 'HX6-ARM-14');
+  assert.equal(arm?.description, 'Arm extension, 9 m to 14 m');
 });
 
 test('every bill-of-materials line comes from the catalogue, in catalogue order', () => {

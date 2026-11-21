@@ -30,15 +30,15 @@ export const plannedPages = {
   footer: [
     {
       heading: 'Consulting',
-      items: ['Oracle CPQ', 'Oracle CX', 'Salesforce', 'Integration', 'Application Support'],
+      items: ['Oracle CPQ', 'Oracle CX', 'Salesforce'],
     },
     {
       heading: 'Staffing',
-      items: ['Contract Staffing', 'Staff Augmentation', 'Skills We Place', 'Shortlist Process'],
+      items: ['Contract Staffing', 'Staff Augmentation'],
     },
     {
       heading: 'Company',
-      items: ['About', 'Case Studies', 'Delivery Method', 'Contact', 'Privacy Policy'],
+      items: ['About', 'Case Studies', 'Privacy Policy'],
     },
   ],
 } as const;
@@ -53,5 +53,32 @@ export const chapters = [
   { id: 'engagements', label: 'Engagements' },
   { id: 'staffing', label: 'Staffing' },
   { id: 'delivery', label: 'Delivery' },
-  { id: 'brief', label: 'Your brief' },
+  { id: 'contact', label: 'Contact' },
 ] as const;
+
+/**
+ * The enquiry dialog's service dropdown. Each option is a request a buyer actually
+ * arrives with, in the words they would use, grouped by the two ways of working.
+ */
+export const enquiry = {
+  services: [
+    {
+      label: 'Consulting',
+      options: [
+        'Oracle CPQ implementation',
+        'Oracle CPQ enhancements or support',
+        'Oracle CPQ integration with CRM or ERP',
+        'Oracle CX consulting',
+        'Salesforce consulting',
+      ],
+    },
+    {
+      label: 'Staffing',
+      options: ['Contract specialists for Oracle CPQ, Oracle CX or Salesforce', 'IT staff augmentation'],
+    },
+    {
+      label: 'Other',
+      options: ['Not sure yet'],
+    },
+  ],
+} as const;

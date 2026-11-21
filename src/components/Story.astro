@@ -15,15 +15,17 @@ import {
   quoteReference,
 } from '../scripts/cpq/engine';
 import unitPoster from '../assets/posters/unit-0.webp';
+import { company } from '../data/site';
 
 const ev = evaluate(DEFAULT_SELECTION);
 const sel = ev.selection;
 const inBom = new Map(ev.bom.map((line) => [line.part, line]));
 const reference = quoteReference(sel);
 const approvalsNeeded = ev.approvals.filter((step) => step.required);
+const mail = `mailto:${company.email}`;
 ---
 
-<div class="story wrap" data-story>
+<div class="story wrap" id="top" data-story>
   <div class="story__stage" aria-hidden="true">
     <div class="stage" data-stage="unit">
       <div class="stage__slot" data-stage-slot>
@@ -36,53 +38,46 @@ const approvalsNeeded = ev.approvals.filter((step) => step.required);
 
   <div class="story__text">
     <!-- ================= Opening ================= -->
-    <section class="hero" id="top" aria-labelledby="hero-title">
-      <p class="hero__name" aria-label="Configure, Price, Quote">
-        <span><b>Con</b>figure</span>
-        <span><b>Pri</b>ce</span>
-        <span><b>Quo</b>te</span>
-      </p>
-      <h1 class="display" id="hero-title">
-        Oracle&nbsp;CPQ, Oracle&nbsp;CX and Salesforce consulting.
-        <span class="hero__how">By the project, or by the specialist.</span>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 class="hero__title" id="hero-title">
+        <span class="hero__services">
+          <span data-dot="cpq">Oracle CPQ<span class="visually-hidden">, </span></span>
+          <span data-dot="cx">Oracle CX<span class="visually-hidden">, </span></span>
+          <span data-dot="sf">Salesforce<span class="visually-hidden">, </span></span>
+          <span data-dot="staff">IT Staffing<span class="visually-hidden">. </span></span>
+        </span>
+        <span class="hero__line">Get the quote right.</span>
+        <span class="hero__line hero__line--2">Get the right people.</span>
       </h1>
       <p class="lead hero__lead">
-        ConPriQuo Solutions implements, integrates and supports Oracle CPQ, Oracle CX and Salesforce for
-        companies that sell complex products. When the need is a person rather than a project, we shortlist
-        contract specialists for the role.
+        We build Oracle CPQ, Oracle CX and Salesforce systems for companies that sell complex products, and place
+        the specialists who run them.
       </p>
       <div class="hero__cta">
-        <a class="btn" href="#brief" data-brief-path="project">Scope a project</a>
-        <a class="btn btn--line" href="#brief" data-brief-path="staffing">Request specialists</a>
+        <a class="btn btn--accent" href={mail} data-enquiry>Discuss your requirement</a>
+        <a class="btn btn--line" href="#configure">Build a quote live</a>
       </div>
-      <a class="hero__next" href="#configure">
-        <span class="hero__next-mark" aria-hidden="true"></span>
-        <span>Or try the work first. Configure the HX-6 and follow its quote.</span>
-      </a>
     </section>
 
     <!-- ================= Configure ================= -->
     <section class="step" id="configure" data-step="configure" aria-labelledby="configure-title">
-      <p class="tag"><span><b>Con</b>figure</span></p>
-      <h2 class="h2" id="configure-title" data-lines>Every option has consequences. The model should know them.</h2>
+      <h2 class="chapter" id="configure-title">
+        <span class="tag"><span aria-hidden="true"><b>Con</b>figure</span><span class="visually-hidden">Configure: </span></span>
+        <span class="h2" data-lines>If it can’t be built, it can’t be quoted.</span>
+      </h2>
       <p class="body" data-reveal>
-        A seller should not have to remember that a longer arm needs more ballast, or that a vacuum lifter on a
-        diesel unit needs its own pump. In Oracle CPQ we build that knowledge into the product model:
-        attribute-driven bills of materials, constraint and recommendation rules, and guided selling that only
-        offers what can actually be built.
+        A longer arm needs more ballast. A vacuum lifter on diesel needs its own pump. We write that logic into
+        Oracle CPQ as constraint and recommendation rules. Try breaking one.
       </p>
 
       <div class="demo" data-nosnippet>
       <p class="demo__note" data-reveal>
-        The HX-6 does not exist. We invented it for this page so you can operate the kind of logic we build
-        without borrowing anyone's product data. ConPriQuo does not sell machines. We build the systems that
-        quote them.
+        The HX-6 is invented for this page. We don’t sell machines. We build the systems that quote them.
       </p>
 
       <form class="bench" data-bench aria-label="Configure the HX-6 handling unit" data-reveal>
         <div class="bench__head">
           <p class="bench__title">HX-6 handling unit</p>
-          <p class="label">Invented for this page</p>
         </div>
 
         <fieldset class="opt" data-attr="reach">
@@ -175,7 +170,7 @@ const approvalsNeeded = ev.approvals.filter((step) => step.required);
       </div>
 
       <figure class="code" data-reveal>
-        <figcaption class="label">Rule R-04 as it might be written in BML, simplified</figcaption>
+        <figcaption class="label">Rule R-04 in BML, simplified</figcaption>
         <pre class="mono"><code>{`// Recommendation: ballast follows reach
 if (reach == "LONG") {
     return 2;
@@ -184,25 +179,20 @@ return 1;`}</code></pre>
       </figure>
       </div>
 
-      <a
-        class="intent"
-        href="#brief"
-        data-brief-path="project"
-        data-brief-platform="Oracle CPQ"
-        data-brief-need="We need help with product configuration in Oracle CPQ: product models, bills of materials, constraints or guided selling."
-      >
-        Our product model needs this kind of work
+      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ enhancements or support" data-enquiry-note="Our product model needs work: configuration rules, bills of materials or guided selling.">
+        Model your products like this
       </a>
     </section>
 
     <!-- ================= Price ================= -->
     <section class="step" id="price" data-step="price" aria-labelledby="price-title">
-      <p class="tag"><span><b>Pri</b>ce</span></p>
-      <h2 class="h2" id="price-title" data-lines>A price is a chain of decisions. Each one can be written down.</h2>
+      <h2 class="chapter" id="price-title">
+        <span class="tag"><span aria-hidden="true"><b>Pri</b>ce</span><span class="visually-hidden">Price: </span></span>
+        <span class="h2" data-lines>Every discount has an owner.</span>
+      </h2>
       <p class="body" data-reveal>
-        List price, volume tier, negotiated discount, and the point at which someone senior has to sign. We write
-        that logic in BML and BMQL, connect it to the pricing data you already maintain, and show the seller the
-        approval route before the quote leaves their hands.
+        List price, volume tier, negotiated discount. We write the logic in BML and BMQL, and the seller sees who
+        must approve before the quote leaves the desk.
       </p>
 
       <div class="demo" data-nosnippet>
@@ -285,15 +275,11 @@ return 1;`}</code></pre>
               }
             </div>
           </div>
-          <output class="lever__value num" for="discount" data-out="discount">{sel.discount}%</output>
+          <output class="lever__value num" for="discount" data-out="discount" aria-live="off">{sel.discount}%</output>
         </div>
       </div>
 
       <dl class="build" data-reveal>
-        <div class="build__row">
-          <dt>Unit list price</dt>
-          <dd class="mono num" data-out="unitList2">{money(ev.pricing.unitList)}</dd>
-        </div>
         <div class="build__row" data-row="volume">
           <dt>Volume tier <span class="mono" data-out="volumePercent">{ev.pricing.volumePercent}%</span></dt>
           <dd class="mono num" data-out="volumeAmount">&minus;{money(ev.pricing.volumeAmount)}</dd>
@@ -309,7 +295,7 @@ return 1;`}</code></pre>
         <div class="build__row build__row--total">
           <dt>
             Quote total
-            <span class="mono"><span data-out="quantity2">{sel.quantity}</span> units, illustrative figures</span>
+            <span class="mono"><span data-out="quantity2">{sel.quantity} {sel.quantity === 1 ? 'unit' : 'units'}</span>, illustrative figures</span>
           </dt>
           <dd class="num" data-out="total">{money(ev.pricing.total)}</dd>
         </div>
@@ -336,45 +322,32 @@ return 1;`}</code></pre>
         <p class="route__status" data-out="approvalStatus" aria-live="polite">
           {
             ev.approvalRequired
-              ? `Needs sign-off from ${approvalsNeeded.map((step) => step.role.toLowerCase()).join(' and ')}.`
-              : 'Within seller authority. No sign-off needed.'
+              ? `Needs approval from ${approvalsNeeded.map((step) => step.role.toLowerCase()).join(' and ')}.`
+              : 'Within seller authority. No approval needed.'
           }
         </p>
       </div>
 
-      <figure class="code" data-reveal>
-        <figcaption class="label">The first approval condition as BML, simplified</figcaption>
-        <pre class="mono"><code>{`// Approval reason: discount above seller authority
-if (negotiatedDiscount_quote > 10) {
-    return true;
-}
-return false;`}</code></pre>
-      </figure>
       </div>
 
-      <a
-        class="intent"
-        href="#brief"
-        data-brief-path="project"
-        data-brief-platform="Oracle CPQ"
-        data-brief-need="Our pricing, discounting or approval rules in Oracle CPQ need rework."
-      >
-        Our pricing or approval rules need rework
+      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ enhancements or support" data-enquiry-note="Our pricing, discounting or approval rules need rework.">
+        Rework your pricing and approvals
       </a>
     </section>
 
     <!-- ================= Quote ================= -->
     <section class="step" id="quote" data-step="quote" aria-labelledby="quote-title">
-      <p class="tag"><span><b>Quo</b>te</span></p>
-      <h2 class="h2" id="quote-title" data-lines>The document is the easy part, once everything behind it is right.</h2>
+      <h2 class="chapter" id="quote-title">
+        <span class="tag"><span aria-hidden="true"><b>Quo</b>te</span><span class="visually-hidden">Quote: </span></span>
+        <span class="h2" data-lines>Nothing on this quote was typed by hand.</span>
+      </h2>
       <p class="body" data-reveal>
-        The quote document is generated from the data the seller has just worked through: lines, prices, terms and
-        approval status. Nothing is retyped. We configure the commerce process that carries a quote from draft to
-        approval to order, and design the documents it produces.
+        Lines, prices and approval status flow from the configuration into the document. Change an option and the
+        quote changes with it. We build that commerce process in Oracle CPQ.
       </p>
 
       <div class="demo" data-nosnippet>
-      <article class="doc" data-doc data-reveal aria-label="Quote document generated from your configuration">
+      <article class="doc theme-light" data-doc data-reveal aria-label="Quote document generated from your configuration">
         <header class="doc__head">
           <div>
             <p class="doc__kind">Quotation</p>
@@ -434,30 +407,24 @@ return false;`}</code></pre>
             <span class="doc__stamp-dot" aria-hidden="true"></span>
             <span data-out="stampText">{ev.approvalRequired ? 'Awaiting approval' : 'Approved within seller authority'}</span>
           </p>
-          <p class="small">Illustrative document. The HX-6, its parts and its prices are fictional.</p>
         </footer>
       </article>
       </div>
 
-      <a
-        class="intent"
-        href="#brief"
-        data-brief-path="project"
-        data-brief-platform="Oracle CPQ"
-        data-brief-need="Our quote documents or the commerce process behind them need work."
-      >
-        Our quote documents or commerce process need work
+      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ enhancements or support" data-enquiry-note="Our quote documents or the commerce process behind them need work.">
+        Fix your quote documents
       </a>
     </section>
 
     <!-- ================= Hand off ================= -->
     <section class="step" id="handoff" data-step="handoff" aria-labelledby="handoff-title">
-      <p class="tag"><span>Hand off</span></p>
-      <h2 class="h2" id="handoff-title" data-lines>A quote that stops at the PDF has not finished its job.</h2>
+      <h2 class="chapter" id="handoff-title">
+        <span class="tag"><span>Hand off<span class="visually-hidden">: </span></span></span>
+        <span class="h2" data-lines>A quote is finished when ERP has the order.</span>
+      </h2>
       <p class="body" data-reveal>
-        The opportunity in CRM needs the amount and the status. ERP needs every line as an order it can fulfil. We
-        integrate Oracle CPQ with CRM, ERP and enterprise pricing systems, and map each field so that what was
-        quoted is what gets built and invoiced.
+        CRM gets the amount and status on the opportunity. ERP gets every line as a sales order it can fulfill. We
+        integrate Oracle CPQ with both, field by field.
       </p>
 
       <div class="demo" data-nosnippet>
@@ -480,36 +447,28 @@ return false;`}</code></pre>
           <div class="map__system" data-system="crm">
             <p class="label">CRM opportunity</p>
             <ul>
-              <li data-target="total"><span>Amount</span></li>
-              <li data-target="status"><span>Quote status</span></li>
-              <li data-target="reference"><span>Primary quote</span></li>
+              <li data-target="total"><span>Amount<span class="visually-hidden">, from the quote total</span></span></li>
+              <li data-target="status"><span>Quote status<span class="visually-hidden">, from the quote status</span></span></li>
+              <li data-target="reference"><span>Primary quote<span class="visually-hidden">, from the quote reference</span></span></li>
             </ul>
           </div>
           <div class="map__system" data-system="erp">
             <p class="label">ERP sales order</p>
             <ul>
-              <li data-target="lines"><span>Order lines</span></li>
-              <li data-target="net"><span>Unit selling price</span></li>
-              <li data-target="qty"><span>Ordered quantity</span></li>
+              <li data-target="lines"><span>Order lines<span class="visually-hidden">, from the quote lines</span></span></li>
+              <li data-target="net"><span>Unit selling price<span class="visually-hidden">, from the net unit price</span></span></li>
+              <li data-target="qty"><span>Ordered quantity<span class="visually-hidden">, from the quote quantity</span></span></li>
             </ul>
           </div>
         </div>
       </div>
       <p class="small map__note" data-reveal>
-        Field names are simplified. In a real programme the mapping also covers accounts, price lists, tax,
-        currencies and the error cases nobody draws on the whiteboard.
+        Simplified. A real mapping also covers accounts, price lists, tax and currencies.
       </p>
       </div>
 
-      <a
-        class="intent"
-        href="#brief"
-        data-brief-path="project"
-        data-brief-platform="Integration"
-        data-brief-kind="Integration"
-        data-brief-need="We need Oracle CPQ connected to our CRM or ERP so quotes become opportunities and orders without re-keying."
-      >
-        We need CPQ connected to CRM or ERP
+      <a class="intent" href={mail} data-enquiry data-enquiry-service="Oracle CPQ integration with CRM or ERP" data-enquiry-note="We need Oracle CPQ connected to our CRM or ERP.">
+        Connect CPQ to your CRM or ERP
       </a>
     </section>
   </div>
@@ -520,6 +479,7 @@ return false;`}</code></pre>
      Layout: scrolling text column, sticky stage
      ------------------------------------------------------------------ */
   .story {
+    --stage-h: clamp(13.5rem, 38svh, 21rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
@@ -528,9 +488,9 @@ return false;`}</code></pre>
     position: sticky;
     top: var(--header-h);
     z-index: 5;
-    height: clamp(13.5rem, 38svh, 21rem);
+    height: var(--stage-h);
     margin-inline: calc(var(--gutter) * -1);
-    background: var(--paper);
+    background: var(--ground);
     box-shadow: 0 1px 0 var(--hair);
   }
 
@@ -567,17 +527,21 @@ return false;`}</code></pre>
     position: absolute;
     right: var(--gutter);
     bottom: 0.7rem;
-    font-size: 0.6rem;
+    font-size: 0.67rem;
     opacity: 0.85;
   }
 
   @media (min-width: 64rem) {
     .story {
-      grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+      grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
       column-gap: clamp(2rem, 4vw, 5.5rem);
     }
 
+    /* The text column sits above the stage, so a headline may run past its own
+       column into the quiet edge of the canvas. */
     .story__text {
+      position: relative;
+      z-index: 2;
       grid-column: 1;
       grid-row: 1;
     }
@@ -600,137 +564,124 @@ return false;`}</code></pre>
   }
 
   /* ------------------------------------------------------------------
-     Opening
+     Opening. Four services, one tagline, one sentence, two actions.
+     The tagline is sized to its column so each sentence holds one line.
      ------------------------------------------------------------------ */
   .hero {
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding-block: clamp(1.25rem, 4vh, 4.5rem) clamp(2.5rem, 7vh, 5rem);
+    padding-block: clamp(2rem, 6vh, 4.5rem) clamp(2.5rem, 8vh, 5.5rem);
   }
 
-  .hero__name {
+  .hero__title {
+    display: grid;
+    font-weight: inherit;
+  }
+
+  /* The four practices, each marked with one of the logo's four dots. */
+  .hero__services {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem 1.5rem;
-    margin-bottom: clamp(1.1rem, 2.6vh, 2rem);
+    gap: 0.5rem 1.5rem;
+    margin-bottom: clamp(1.25rem, 3.4vh, 2.4rem);
     font-family: var(--font-mono);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-stretch: 96%;
-    font-weight: 400;
-    letter-spacing: 0.1em;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: var(--ink-3);
+    color: var(--ink-2);
   }
 
-  .hero__name b {
-    font-weight: 700;
-    color: var(--ink);
-    box-shadow: inset 0 -0.42em 0 rgb(237 16 126 / 0.2);
+  .hero__services > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
   }
 
-  /* The headline also answers to viewport height, so the calls to action stay in view
-     on short laptop screens. */
-  .hero .display {
-    font-size: min(var(--step-display), 5.6svh + 0.75rem);
+  .hero__services > span::before {
+    content: '';
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    background: var(--dot);
   }
 
-  .hero .lead {
-    font-size: min(var(--step-lead), 1.9svh + 0.45rem);
+  .hero__services [data-dot='cpq'] {
+    --dot: var(--magenta);
+  }
+  .hero__services [data-dot='cx'] {
+    --dot: var(--orange);
+  }
+  .hero__services [data-dot='sf'] {
+    --dot: var(--cyan);
+  }
+  .hero__services [data-dot='staff'] {
+    --dot: var(--ink);
   }
 
-  .hero__how {
+  .hero__line {
     display: block;
-    margin-top: 0.14em;
-    font-weight: 380;
+    font-size: clamp(1.7rem, 9.1cqi, 5.6rem);
+    font-weight: 660;
+    font-stretch: 112%;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+  }
+
+  .hero__line--2 {
+    margin-top: 0.08em;
+    font-weight: 360;
     color: var(--ink-2);
   }
 
   .hero__lead {
-    max-width: 33em;
-    margin-top: clamp(1.25rem, 3vh, 2rem);
+    max-width: 31em;
+    margin-top: clamp(1.5rem, 3.6vh, 2.4rem);
   }
 
   .hero__cta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    margin-top: clamp(1.6rem, 4vh, 2.6rem);
-  }
-
-  .hero__next {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.85rem;
-    align-self: flex-start;
-    margin-top: clamp(1.75rem, 5vh, 3.25rem);
-    font-size: var(--step-small);
-    color: var(--ink-2);
-    text-decoration: none;
-  }
-
-  .hero__next:hover span:last-child {
-    text-decoration: underline;
-    text-underline-offset: 0.25em;
-  }
-
-  .hero__next-mark {
-    position: relative;
-    flex: none;
-    width: 0.5rem;
-    height: 2.2rem;
-    border-radius: 0.5rem;
-    background: var(--hair);
-    overflow: hidden;
-  }
-
-  .hero__next-mark::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 45%;
-    border-radius: inherit;
-    background: var(--magenta);
-    animation: drop 2.6s var(--ease-in-out) infinite;
-  }
-
-  @keyframes drop {
-    0% {
-      transform: translateY(-110%);
-    }
-    55%,
-    100% {
-      transform: translateY(245%);
-    }
+    margin-top: clamp(1.75rem, 4.4vh, 2.9rem);
   }
 
   @media (min-width: 64rem) {
     .hero {
       min-height: calc(100svh - var(--header-h));
     }
+
+    /* Beside the stage the tagline is sized to the screen, not its column: it is
+       allowed to reach across the gap towards the machine. */
+    .hero__line {
+      font-size: clamp(3rem, 5vw, 4.9rem);
+    }
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .hero > * {
+    .hero__services,
+    .hero__line,
+    .hero__lead,
+    .hero__cta {
       animation: rise 900ms var(--ease-out) both;
     }
 
-    .hero > :nth-child(1) {
-      animation-delay: 60ms;
+    .hero__line {
+      animation-delay: 90ms;
     }
-    .hero > :nth-child(2) {
-      animation-delay: 140ms;
+    .hero__line--2 {
+      animation-delay: 190ms;
     }
-    .hero > :nth-child(3) {
-      animation-delay: 260ms;
+    .hero__lead {
+      animation-delay: 310ms;
     }
-    .hero > :nth-child(4) {
-      animation-delay: 360ms;
-    }
-    .hero > :nth-child(5) {
-      animation-delay: 480ms;
+    .hero__cta {
+      animation-delay: 420ms;
     }
 
     @keyframes rise {
@@ -744,17 +695,32 @@ return false;`}</code></pre>
   /* ------------------------------------------------------------------
      Steps
      ------------------------------------------------------------------ */
+  /* Below the desktop layout the stage is pinned over the top of the text column, so
+     a jump to a chapter has to land below it, not behind it. */
   .step {
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: clamp(1.25rem, 2.6vh, 1.9rem);
     padding-block: clamp(3.5rem, 11vh, 7rem);
+    scroll-margin-top: var(--stage-h);
   }
 
   @media (min-width: 64rem) {
     .step {
       min-height: 100svh;
+      scroll-margin-top: 0;
+    }
+  }
+
+  /* A short, wide screen (a phone on its side) has no room for a pinned stage. */
+  @media (max-width: 63.99rem) and (max-height: 30rem) {
+    .story__stage {
+      position: static;
+    }
+
+    .step {
+      scroll-margin-top: 0;
     }
   }
 
@@ -776,7 +742,7 @@ return false;`}</code></pre>
     font-size: var(--step-small);
     line-height: 1.5;
     color: var(--ink-2);
-    box-shadow: inset 3px 0 0 var(--navy);
+    box-shadow: inset 3px 0 0 var(--magenta);
   }
 
   /* A rule, shown the way it is actually written. */
@@ -792,54 +758,19 @@ return false;`}</code></pre>
     margin: 0;
     padding: 1rem 1.1rem;
     overflow-x: auto;
-    background: var(--navy);
-    color: var(--on-navy);
+    background: var(--ground-2);
+    box-shadow: inset 0 0 0 1px var(--hair);
+    color: var(--ink);
     font-size: 0.74rem;
     line-height: 1.75;
     tab-size: 4;
-  }
-
-  /* Each chapter ends with the request a visitor is most likely to have at that point.
-     It opens the brief with that request already written. */
-  .intent {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.8rem;
-    align-self: flex-start;
-    min-height: 2.75rem;
-    font-weight: 560;
-    font-stretch: 104%;
-    text-decoration: underline;
-    text-decoration-color: var(--hair-strong);
-    text-underline-offset: 0.3em;
-    transition: text-decoration-color var(--t-fast) linear;
-  }
-
-  .intent::before {
-    content: '';
-    flex: none;
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 0.5rem;
-    background: var(--magenta);
-    transition: width var(--t-med) var(--ease-out);
-  }
-
-  .intent:hover,
-  .intent:focus-visible {
-    text-decoration-color: currentColor;
-  }
-
-  .intent:hover::before,
-  .intent:focus-visible::before {
-    width: 1.6rem;
   }
 
   /* ------------------------------------------------------------------
      Bench: the configurator. A specification form, not a card.
      ------------------------------------------------------------------ */
   .bench {
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
     margin-top: 0.5rem;
   }
 
@@ -911,13 +842,13 @@ return false;`}</code></pre>
   }
 
   .choice:has(input:focus-visible) {
-    outline: 2px solid var(--navy);
+    outline: 2px solid var(--ink);
     outline-offset: 1px;
   }
 
   .choice:has(input:checked) {
-    background: var(--navy);
-    color: var(--paper);
+    background: var(--ink);
+    color: var(--ground);
   }
 
   .choice__mark {
@@ -943,7 +874,7 @@ return false;`}</code></pre>
   }
 
   .choice:has(input:checked) .choice__mark {
-    background: var(--mark, var(--paper));
+    background: var(--mark, var(--ground));
     box-shadow: none;
   }
 
@@ -1073,7 +1004,7 @@ return false;`}</code></pre>
      Price: bill of materials, levers, price build, approval route
      ------------------------------------------------------------------ */
   .sheet {
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
     margin-top: 0.5rem;
   }
 
@@ -1099,7 +1030,7 @@ return false;`}</code></pre>
 
   .bom thead th {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1120,7 +1051,7 @@ return false;`}</code></pre>
 
   .bom tfoot th,
   .bom tfoot td {
-    border-top: 1px solid var(--navy);
+    border-top: 1px solid var(--ink);
     font-weight: 600;
     padding-top: 0.6rem;
   }
@@ -1133,7 +1064,7 @@ return false;`}</code></pre>
     display: inline-block;
     margin-left: 0.5rem;
     padding: 0.05rem 0.4rem;
-    font-size: 0.6rem;
+    font-size: 0.67rem;
     font-weight: 600;
     color: var(--ink);
     background: rgb(237 16 126 / 0.16);
@@ -1144,7 +1075,7 @@ return false;`}</code></pre>
   }
 
   .bom tbody :global(tr.is-new) {
-    background: rgb(237 16 126 / 0.14);
+    background: rgb(237 16 126 / 0.3);
     transition-duration: 0s;
   }
 
@@ -1190,7 +1121,7 @@ return false;`}</code></pre>
     display: inline-grid;
     grid-template-columns: 2.75rem 3.1rem 2.75rem;
     align-items: center;
-    box-shadow: inset 0 0 0 1.5px var(--navy);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
     border-radius: 2px;
   }
 
@@ -1205,7 +1136,8 @@ return false;`}</code></pre>
     background: var(--wash);
   }
 
-  .stepper button:disabled {
+  .stepper button[aria-disabled='true'],
+  .stepper button[aria-disabled='true']:hover {
     color: var(--hair-strong);
     cursor: default;
     background: none;
@@ -1259,34 +1191,37 @@ return false;`}</code></pre>
     height: 1.65rem;
     margin-top: -0.575rem;
     border-radius: 50%;
-    background: var(--navy);
-    border: 0.3rem solid var(--paper);
-    box-shadow: 0 0 0 1.5px var(--navy);
+    background: var(--ink);
+    border: 0.3rem solid var(--ground);
+    box-shadow: 0 0 0 1.5px var(--ink);
   }
 
   .slider input::-moz-range-thumb {
     width: 1.05rem;
     height: 1.05rem;
     border-radius: 50%;
-    background: var(--navy);
-    border: 0.3rem solid var(--paper);
-    box-shadow: 0 0 0 1.5px var(--navy);
+    background: var(--ink);
+    border: 0.3rem solid var(--ground);
+    box-shadow: 0 0 0 1.5px var(--ink);
   }
 
   .slider input:focus-visible {
     outline: none;
   }
 
+  /* A solid double ring: clearly visible on paper, not a faint halo. */
   .slider input:focus-visible::-webkit-slider-thumb {
     box-shadow:
-      0 0 0 1.5px var(--navy),
-      0 0 0 5px rgb(17 18 60 / 0.22);
+      0 0 0 1.5px var(--ink),
+      0 0 0 4px var(--ground),
+      0 0 0 6px var(--ink);
   }
 
   .slider input:focus-visible::-moz-range-thumb {
     box-shadow:
-      0 0 0 1.5px var(--navy),
-      0 0 0 5px rgb(17 18 60 / 0.22);
+      0 0 0 1.5px var(--ink),
+      0 0 0 4px var(--ground),
+      0 0 0 6px var(--ink);
   }
 
   .slider__ticks {
@@ -1313,13 +1248,13 @@ return false;`}</code></pre>
 
   .slider__ticks em {
     font-style: normal;
-    font-size: 0.58rem;
+    font-size: 0.66rem;
     color: var(--ink-3);
   }
 
   .build {
     display: grid;
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
   }
 
   .build__row {
@@ -1348,7 +1283,7 @@ return false;`}</code></pre>
 
   .build__row--net {
     font-weight: 600;
-    border-top-color: var(--navy);
+    border-top-color: var(--ink);
   }
 
   .build__row--total {
@@ -1385,11 +1320,14 @@ return false;`}</code></pre>
   .route__chain {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
   }
 
   .route__node {
     position: relative;
     display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
     gap: 0.15rem;
     padding-top: 1.55rem;
     padding-right: 0.5rem;
@@ -1417,7 +1355,7 @@ return false;`}</code></pre>
     width: 0.95rem;
     height: 0.95rem;
     border-radius: 50%;
-    background: var(--paper);
+    background: var(--ground);
     box-shadow: inset 0 0 0 2px var(--hair-strong);
     transition:
       background-color var(--t-med) linear,
@@ -1426,13 +1364,13 @@ return false;`}</code></pre>
   }
 
   .route__node.is-done .route__dot {
-    background: var(--navy);
+    background: var(--ink);
     box-shadow: none;
   }
 
   .route__node.is-required .route__dot {
     background: var(--orange);
-    box-shadow: inset 0 0 0 2px var(--navy);
+    box-shadow: inset 0 0 0 2px var(--ink);
     transform: scale(1.3);
   }
 
@@ -1450,7 +1388,7 @@ return false;`}</code></pre>
   }
 
   .route__rule {
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     color: var(--ink-3);
   }
 
@@ -1516,7 +1454,7 @@ return false;`}</code></pre>
 
   .doc__meta dt {
     color: var(--ink-3);
-    font-size: 0.58rem;
+    font-size: 0.66rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -1537,9 +1475,9 @@ return false;`}</code></pre>
   }
 
   .doc__lines thead th {
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.67rem;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1563,7 +1501,7 @@ return false;`}</code></pre>
 
   .doc__part {
     display: block;
-    font-size: 0.6rem;
+    font-size: 0.67rem;
     color: var(--ink-3);
   }
 
@@ -1573,7 +1511,7 @@ return false;`}</code></pre>
     gap: 0.3rem;
     margin-top: 0.9rem;
     padding-top: 0.9rem;
-    border-top: 1px solid var(--navy);
+    border-top: 1px solid var(--ink);
   }
 
   .doc__totals > div {
@@ -1620,7 +1558,7 @@ return false;`}</code></pre>
     font-size: 0.84rem;
     font-weight: 600;
     font-stretch: 104%;
-    box-shadow: inset 0 0 0 1.5px var(--navy);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
     border-radius: 2rem;
   }
 
@@ -1629,7 +1567,7 @@ return false;`}</code></pre>
     height: 0.85rem;
     border-radius: 50%;
     background: var(--cyan);
-    box-shadow: inset 0 0 0 1.5px var(--navy);
+    box-shadow: inset 0 0 0 1.5px var(--ink);
     transition: background-color var(--t-med) linear;
   }
 
@@ -1661,7 +1599,7 @@ return false;`}</code></pre>
 
   .map .label {
     padding-block: 0.8rem 0.55rem;
-    border-top: 2px solid var(--navy);
+    border-top: 2px solid var(--ink);
   }
 
   .map li {
@@ -1679,9 +1617,21 @@ return false;`}</code></pre>
   }
 
   .map li b {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 500;
     text-align: right;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 30rem) {
+    .map li {
+      gap: 0.4rem;
+    }
+
+    .map li b {
+      font-size: 0.66rem;
+      letter-spacing: -0.01em;
+    }
   }
 
   .map__col--to {
@@ -1715,8 +1665,8 @@ return false;`}</code></pre>
   }
 
   .map__wires :global(circle) {
-    fill: var(--paper);
-    stroke: var(--navy);
+    fill: var(--ground);
+    stroke: var(--ink);
     stroke-width: 1.5;
     vector-effect: non-scaling-stroke;
   }

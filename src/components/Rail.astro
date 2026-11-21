@@ -35,7 +35,11 @@ import { chapters } from '../data/site';
     transition: opacity var(--t-med) linear;
   }
 
-  .rail.is-visible {
+  /* Shown once the story starts, whenever keyboard focus is inside it, and always
+     when scripting is unavailable. */
+  .rail.is-visible,
+  .rail:focus-within,
+  :global(html:not(.js)) .rail {
     opacity: 1;
     pointer-events: auto;
   }
@@ -57,7 +61,7 @@ import { chapters } from '../data/site';
     width: 0.45rem;
     height: 0.36rem;
     border-radius: 0.4rem;
-    background: var(--hair-strong);
+    background: var(--ink-3);
     transition:
       width var(--t-med) var(--ease-out),
       background-color var(--t-med) linear;
@@ -66,13 +70,13 @@ import { chapters } from '../data/site';
   .rail__label {
     padding: 0.2rem 0.5rem;
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.69rem;
     font-stretch: 94%;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--ink);
-    background: var(--paper);
+    background: var(--ground);
     box-shadow: inset 0 0 0 1px var(--hair-strong);
     opacity: 0;
     transform: translateX(-0.3rem);
@@ -88,7 +92,7 @@ import { chapters } from '../data/site';
   }
 
   .rail a:hover .rail__mark {
-    background: var(--navy);
+    background: var(--ink);
     width: 0.9rem;
   }
 
@@ -97,19 +101,9 @@ import { chapters } from '../data/site';
     background: var(--magenta);
   }
 
-  .rail.is-on-navy .rail__mark {
-    background: var(--hair-on-navy);
-  }
-
-  .rail.is-on-navy a:hover .rail__mark {
-    background: var(--on-navy);
-  }
-
-  .rail.is-on-navy :global(a.is-current) .rail__mark {
-    background: var(--magenta);
-  }
-
-  @media (min-width: 80rem) and (min-height: 34rem) {
+  /* From the width where the header's menu button disappears, so there is never a
+     size with no in-page navigation. */
+  @media (min-width: 68.01rem) {
     .rail {
       display: block;
     }

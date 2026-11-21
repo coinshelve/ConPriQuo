@@ -1,13 +1,20 @@
 import { Color, MeshLambertMaterial } from 'three';
 
-/** Brand colours sampled from the original logo file. */
+/**
+ * Colours for the 3D stage. The four brand colours are sampled from the original logo
+ * file; the stage itself is the logo's navy, so the scene is drawn the way the mark
+ * would be reversed out of navy: white hexagons, the magenta bar, and the dots.
+ */
 export const BRAND = {
   navy: 0x11123c,
   magenta: 0xed107e,
   cyan: 0x00aeef,
   orange: 0xf7941d,
-  paper: 0xf4f1ea,
   white: 0xffffff,
+  /** The page ground behind the transparent canvas. Lattice lines fade into it. */
+  ground: 0x11123c,
+  lattice: 0x4347a8,
+  shadow: 0x03041a,
 } as const;
 
 /**
@@ -31,22 +38,9 @@ export function keyLightColor(): Color {
 }
 
 /**
- * Navy is too dark for shading to show form if the lit face is the brand navy, so the
- * relationship is inverted: the brand navy is the shaded tone, and lit faces lift
- * towards indigo.
- */
-function litNavy(): Color {
-  const c = new Color(BRAND.navy);
-  c.r /= AMBIENT_RGB[0] * 0.6;
-  c.g /= AMBIENT_RGB[1] * 0.6;
-  c.b /= AMBIENT_RGB[2] * 0.6;
-  return c;
-}
-
-/**
- * White parts are softened so their shaded faces stay light and papery: part of the
- * surface colour is moved into an emissive term, which keeps the top face at the same
- * value while reducing the spread between lit and shaded faces.
+ * Part of the surface colour is moved into an emissive term. The top face keeps the
+ * same value while the spread between lit and shaded faces narrows, so light parts
+ * stay light on their shaded sides and accents stay saturated.
  */
 function soft(hex: number, lift: number): MeshLambertMaterial {
   const target = new Color(hex);
@@ -56,7 +50,14 @@ function soft(hex: number, lift: number): MeshLambertMaterial {
 }
 
 export interface Materials {
+  /** The open hexagons: white, as the mark reads on navy. */
+  frame: MeshLambertMaterial;
+  /** Structural detail. A lit indigo from the navy family that stands clear of the ground. */
   navy: MeshLambertMaterial;
+  /** The logo navy itself, for marks printed on the white quote sheet. */
+  ink: MeshLambertMaterial;
+  /** Recessed plates: a step lighter than the ground. */
+  deck: MeshLambertMaterial;
   magenta: MeshLambertMaterial;
   cyan: MeshLambertMaterial;
   orange: MeshLambertMaterial;
@@ -66,11 +67,14 @@ export interface Materials {
 
 export function createMaterials(): Materials {
   return {
-    navy: new MeshLambertMaterial({ color: litNavy() }),
+    frame: soft(0xffffff, 0.3),
+    navy: soft(0x4447b8, 0.1),
+    ink: soft(0x1b1c58, 0.2),
+    deck: soft(0x2a2c7c, 0.12),
     magenta: soft(BRAND.magenta, 0.12),
     cyan: soft(BRAND.cyan, 0.12),
     orange: soft(BRAND.orange, 0.12),
-    white: soft(0xffffff, 0.42),
-    bone: soft(0xe9e5dc, 0.36),
+    white: soft(0xffffff, 0.44),
+    bone: soft(0xc9cee8, 0.3),
   };
 }

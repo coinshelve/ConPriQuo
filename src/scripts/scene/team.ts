@@ -8,7 +8,7 @@ export type Family = 'apps' | 'engineering' | 'cloud';
 
 /**
  * The staffing scene. The open hexagon is the client's team with one seat to fill;
- * the dots are people. Four phases follow the shortlist process exactly as the
+ * the dots are people: white for the client's own, the brand colours for specialists. Four phases follow the shortlist process exactly as the
  * company describes it: Align, Source, Screen, Coordinate.
  */
 const DOT_R = 0.34;
@@ -65,18 +65,18 @@ export class Team {
   constructor(private materials: Materials) {
     const m = materials;
 
-    const frame = mesh(extrudeFlat(openHexShape(2.55, 0.5, 0.44, 0.22), 0.3, 0.05), m.navy);
+    const frame = mesh(extrudeFlat(openHexShape(2.55, 0.5, 0.44, 0.22), 0.3, 0.05), m.frame);
     this.root.add(frame);
 
     // seats: three taken by the client's own people, one open
     const padGeometry = new CylinderGeometry(0.47, 0.47, 0.06, 40);
     PAD.forEach(([x, z], index) => {
-      const pad = mesh(padGeometry, m.white);
+      const pad = mesh(padGeometry, m.deck);
       pad.position.set(x, 0.03, z);
       pad.castShadow = false;
       this.root.add(pad);
       if (index < 3) {
-        const person = mesh(new SphereGeometry(DOT_R, 40, 28), m.navy);
+        const person = mesh(new SphereGeometry(DOT_R, 40, 28), m.white);
         person.position.set(x, 0.06 + DOT_R, z);
         this.root.add(person);
       }
@@ -122,7 +122,7 @@ export class Team {
     });
 
     // the gap flagged for interview: a small ring carried by one shortlisted candidate
-    this.flag = mesh(new TorusGeometry(DOT_R + 0.1, 0.045, 12, 48), m.navy);
+    this.flag = mesh(new TorusGeometry(DOT_R + 0.1, 0.045, 12, 48), m.orange);
     this.flag.rotation.x = Math.PI / 2;
     this.flag.castShadow = false;
     this.root.add(this.flag);
@@ -210,7 +210,7 @@ export class Team {
     else if (this.flagScale.step(dt)) active = true;
     const fs = Math.max(0, this.flagScale.value);
     this.flag.visible = fs > 0.01;
-    this.flag.material = this.family === 'cloud' ? this.materials.navy : this.materials.orange;
+    this.flag.material = this.family === 'cloud' ? this.materials.white : this.materials.orange;
     if (flagged) {
       this.flag.position.set(flagged.node.position.x, flagged.node.position.y + 0.02, flagged.node.position.z);
       this.flag.scale.setScalar(fs);

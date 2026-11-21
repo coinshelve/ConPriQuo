@@ -1,72 +1,69 @@
 #!/usr/bin/env node
 /**
- * Renders the static poster images used when WebGL is unavailable (and by the social
- * preview image). Each poster is a capture of the real 3D scene in one of its settled
- * states, so the fallback always matches the live experience.
+ * Renders the static poster images used when the 3D stage cannot run (no WebGL, or
+ * only a software renderer) and by the social preview image. Each poster is a capture
+ * of the real 3D scene in one of its settled states, so the fallback always matches
+ * the live experience.
  *
  * Start the site first (npm run dev, or npm run preview after a build), then:
  *
  *   node tools/posters.mjs --url http://127.0.0.1:4321/
+ *   node tools/posters.mjs --url http://127.0.0.1:4322/ --out shots/posters
+ *
+ * Options: --url <address> the running site (default http://127.0.0.1:4321/),
+ *          --out <dir> where the images are written (default src/assets/posters)
  */
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
+import { allowSoftwareWebGL, launch, option, wait } from './lib/browser.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const outDir = resolve(root, 'src/assets/posters');
-const args = process.argv.slice(2);
-const opt = (name, fallback) => {
-  const i = args.indexOf(`--${name}`);
-  return i >= 0 && args[i + 1] !== undefined ? args[i + 1] : fallback;
-};
-const url = opt('url', 'http://127.0.0.1:4321/');
-
-const executablePath = [
-  process.env.CHROME_PATH,
-  'C:/Program Files/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
-  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-]
-  .filter(Boolean)
-  .find((p) => existsSync(p));
-if (!executablePath) {
-  console.error('No Chrome or Edge found. Set CHROME_PATH.');
-  process.exit(2);
-}
+const url = option('url', 'http://127.0.0.1:4321/');
+const outOption = option('out');
+// A relative --out is taken from the folder the command is run in.
+const outDir = outOption ? resolve(outOption) : resolve(root, 'src/assets/posters');
 
 mkdirSync(outDir, { recursive: true });
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const browser = await puppeteer.launch({
-  executablePath,
-  headless: true,
-  args: ['--hide-scrollbars', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--force-color-profile=srgb'],
-});
+const browser = await launch();
 
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1.5 });
+  // The posters are captures of the live scene, so the page's refusal of a software
+  // renderer is lifted here: headless Chrome has nothing else to draw with.
+  await allowSoftwareWebGL(page);
   // Reduced motion makes every scene jump straight to its settled pose.
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForSelector('.stage-canvas.is-ready', { timeout: 30000 });
-  await page.addStyleTag({
-    content: `
-      html, body, .site-header, .story__stage, .shortlist__stage, .stage { background: transparent !important; box-shadow: none !important; }
-      .stage__labels, .stage__note, .stage__caption, .rail, .site-header { visibility: hidden !important; }
-      astro-dev-toolbar { display: none !important; }
-      *, *::before, *::after { scroll-behavior: auto !important; }
-    `,
-  });
+  // Everything that is not the scene is hidden or made transparent for the capture.
+  // The page can reload under a dev server (hot reload), which would drop an injected
+  // style element, so the overrides are checked before every capture.
+  const OVERRIDES = `
+    html, body, main, section, .site-header, .story__stage, .shortlist__stage, .stage { background: transparent !important; box-shadow: none !important; }
+    .stage__labels, .stage__note, .stage__caption, .rail, .site-header { visibility: hidden !important; }
+    astro-dev-toolbar { display: none !important; }
+    *, *::before, *::after { scroll-behavior: auto !important; }
+  `;
+  const ensureOverrides = async () => {
+    const present = await page.evaluate(() => Boolean(document.querySelector('style[data-poster-overrides]')));
+    if (present) return;
+    await page.waitForSelector('.stage-canvas.is-ready', { timeout: 30000 });
+    await page.evaluate((css) => {
+      const style = document.createElement('style');
+      style.setAttribute('data-poster-overrides', '');
+      style.textContent = css;
+      document.head.append(style);
+    }, OVERRIDES);
+  };
+  await ensureOverrides();
 
   const capture = async (slotSelector, name) => {
+    await ensureOverrides();
     // The clip is in document coordinates, so the scroll offset is added to the slot's box.
     const box = await page.evaluate((selector) => {
       const rect = document.querySelector(selector).getBoundingClientRect();
@@ -75,7 +72,20 @@ try {
     const png = await page.screenshot({ clip: box, omitBackground: true, type: 'png' });
     const out = resolve(outDir, `${name}.webp`);
     const info = await sharp(png).webp({ quality: 84, alphaQuality: 90, effort: 6 }).toFile(out);
-    console.log('wrote', `src/assets/posters/${name}.webp`, `${info.width}x${info.height}`, `${info.size} bytes`);
+    const shown = relative(root, out);
+    console.log('wrote', shown.startsWith('..') ? out : shown.replaceAll('\\', '/'), `${info.width}x${info.height}`, `${info.size} bytes`);
+  };
+
+  /**
+   * Scroll, then wait until the one canvas has moved into this slot and the scene has
+   * settled. A fixed pause alone is not enough on a busy machine: the capture could
+   * land before the stage had switched scenes.
+   */
+  const settle = async (slotSelector, top) => {
+    await ensureOverrides();
+    await page.evaluate((y) => window.scrollTo(0, y), top);
+    await page.waitForFunction((selector) => Boolean(document.querySelector(`${selector} canvas.stage-canvas`)), { timeout: 20000 }, slotSelector);
+    await wait(1500);
   };
 
   // ---- worked example: opening plus the four chapters
@@ -84,8 +94,7 @@ try {
   );
   const stops = [0, ...stepTops.map((top) => Math.round(top - 40))];
   for (let i = 0; i < stops.length; i++) {
-    await page.evaluate((top) => window.scrollTo(0, top), stops[i]);
-    await wait(900);
+    await settle('[data-stage-slot]', stops[i]);
     await capture('[data-stage-slot]', `unit-${i}`);
   }
 
@@ -93,9 +102,9 @@ try {
   const phaseTops = await page.evaluate(() =>
     Array.from(document.querySelectorAll('[data-phase]')).map((el) => el.getBoundingClientRect().top + window.scrollY),
   );
+  const viewportHeight = page.viewport().height;
   for (let i = 0; i < phaseTops.length; i++) {
-    await page.evaluate((top) => window.scrollTo(0, top - window.innerHeight * 0.35), phaseTops[i]);
-    await wait(1100);
+    await settle('[data-team-slot]', Math.round(phaseTops[i] - viewportHeight * 0.35));
     await capture('[data-team-slot]', `team-${i}`);
   }
 } finally {

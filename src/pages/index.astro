@@ -7,7 +7,8 @@ import Practices from '../components/Practices.astro';
 import Engagements from '../components/Engagements.astro';
 import Staffing from '../components/Staffing.astro';
 import Delivery from '../components/Delivery.astro';
-import Brief from '../components/Brief.astro';
+import Closing from '../components/Closing.astro';
+import Enquiry from '../components/Enquiry.astro';
 import Footer from '../components/Footer.astro';
 import { company } from '../data/site';
 
@@ -15,9 +16,9 @@ const title = 'Oracle CPQ, Oracle CX and Salesforce Consulting | ConPriQuo';
 const description =
   'Oracle CPQ, Oracle CX and Salesforce consulting from Belagavi, India. Hire a project team or a contract specialist for implementation, BML and support.';
 
-const site = (Astro.site ?? new URL(company.url)).href.replace(/\/$/, '');
-const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const home = `${site}${base}/`;
+// Structured data always describes the production site, whatever origin or sub-path
+// this copy is built for, so a preview build never claims to be the company's address.
+const home = `${new URL(company.url).origin}/`;
 const organizationId = `${home}#organization`;
 
 /**
@@ -46,7 +47,7 @@ const structuredData = {
       logo: `${home}brand/conpriquo-solutions-logo.png`,
       image: `${home}og/conpriquo-solutions.png`,
       description:
-        'ConPriQuo Solutions is an enterprise technology consulting and IT staffing company. It implements, integrates and supports Oracle CPQ, Oracle CX and Salesforce, and provides contract staffing and staff augmentation.',
+        'ConPriQuo Solutions is an Oracle CPQ, Oracle CX and Salesforce consulting and specialized IT staffing company based in Belagavi, India, serving clients globally. It builds configure, price, quote systems for companies that sell complex products, and provides contract staffing and staff augmentation.',
       email: company.email,
       telephone: company.phoneDisplay,
       address: {
@@ -82,17 +83,17 @@ const structuredData = {
           service(
             'Oracle CPQ consulting',
             'Oracle CPQ implementation, enhancement and application support',
-            'Product configuration with product models, attribute-driven BOMs, constraints and guided selling; pricing and commerce with BML and BMQL logic, discounting, approval rules and quote documents; integration with CRM, ERP and enterprise pricing systems; support after launch.',
+            'Product configuration with product models, bills of materials, constraints and guided selling; pricing and commerce with BML and BMQL logic, discounting, approvals and quote documents; integration with CRM and ERP, and support in production.',
           ),
           service(
             'Oracle CX consulting',
             'Oracle CX sales and service process consulting',
-            'Sales processes covering account, opportunity and handoff workflows; service processes covering service requests, routing and escalation; integration between Oracle CX and the systems that support fulfilment.',
+            'Sales processes covering account, opportunity and handoff workflows; service processes covering service requests, routing and escalation; records and handoffs mapped between Oracle CX and fulfillment systems.',
           ),
           service(
             'Salesforce consulting',
-            'Salesforce implementation and customization',
-            'Sales and service workflows with role-based access; customization and automation of business rules, approvals and handoffs; data migration planning; CPQ and ERP integration.',
+            'Salesforce consulting and customization',
+            'Sales and service workflows with role-based access; customization and automation of business rules, approvals and handoffs; data migration, and quote and order data shared with CPQ and ERP.',
           ),
           service(
             'Specialized IT staffing',
@@ -120,7 +121,7 @@ const structuredData = {
       inLanguage: 'en',
       isPartOf: { '@id': `${home}#website` },
       about: { '@id': organizationId },
-      primaryImageOfPage: `${home}og/conpriquo-solutions.png`,
+      primaryImageOfPage: { '@type': 'ImageObject', url: `${home}og/conpriquo-solutions.png`, width: 1200, height: 630 },
     },
   ],
 };
@@ -135,9 +136,10 @@ const structuredData = {
     <Engagements />
     <Staffing />
     <Delivery />
-    <Brief />
+    <Closing />
   </main>
   <Footer />
+  <Enquiry />
   <script>
     import '../scripts/main.ts';
   </script>

@@ -1,7 +1,10 @@
 import {
   AmbientLight,
+  BufferGeometry,
   Color,
   DirectionalLight,
+  Float32BufferAttribute,
+  LineSegments,
   Mesh,
   NoToneMapping,
   OrthographicCamera,
@@ -9,6 +12,7 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
   Scene,
+  ShaderMaterial,
   ShadowMaterial,
   Vector3,
   WebGLRenderer,
@@ -38,6 +42,62 @@ export interface RigOptions {
 }
 
 /**
+ * The floor of the stage: the logo's hexagon, tiled. Every scene stands on it, and
+ * the machine's frame fills exactly one cell. The lines are strongest under whatever
+ * the camera is looking at and fade to nothing before the edge of the canvas, so the
+ * lattice never ends in a cut line, whatever the size or shape of the stage.
+ */
+function createLattice(): LineSegments {
+  const cell = 3.55;
+  const reach = 8;
+  const positions: number[] = [];
+  for (let i = -reach; i <= reach; i++) {
+    for (let j = -reach; j <= reach; j++) {
+      const cx = 1.5 * cell * i;
+      const cz = Math.sqrt(3) * cell * (j + (Math.abs(i) % 2 ? 0.5 : 0));
+      // three edges per cell are enough: the neighbours draw the other three
+      for (let k = 0; k < 3; k++) {
+        const a = (Math.PI / 3) * k;
+        const b = (Math.PI / 3) * (k + 1);
+        positions.push(cx + cell * Math.cos(a), 0, cz + cell * Math.sin(a));
+        positions.push(cx + cell * Math.cos(b), 0, cz + cell * Math.sin(b));
+      }
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  const material = new ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: { uColor: { value: new Color(BRAND.lattice) } },
+    vertexShader: /* glsl */ `
+      varying vec2 vScreen;
+      void main() {
+        vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vScreen = clip.xy / clip.w;
+        gl_Position = clip;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      varying vec2 vScreen;
+      void main() {
+        // 0 at the centre of the canvas, 1 at the middle of each edge
+        float edge = length(vScreen);
+        float alpha = 1.0 - smoothstep(0.46, 1.0, edge);
+        gl_FragColor = vec4(uColor, alpha);
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+  const lattice = new LineSegments(geometry, material);
+  lattice.position.y = 0.006;
+  lattice.renderOrder = -1;
+  lattice.frustumCulled = false;
+  return lattice;
+}
+
+/**
  * Owns the renderer, the orthographic camera, the calibrated light rig and an
  * on-demand render loop. The canvas lives inside a DOM "slot"; layout stays in CSS
  * and the rig simply fills whichever slot it is mounted in.
@@ -54,18 +114,24 @@ export class Rig {
   private visibilityObserver: IntersectionObserver;
   private width = 1;
   private height = 1;
+  private ratio = 0;
   private visible = false;
+  private started = false;
   private raf = 0;
   private last = 0;
   private dirty = true;
   private callbacks: FrameCallback[] = [];
+  private resizeCallbacks: (() => void)[] = [];
+  private lostCallbacks: (() => void)[] = [];
+  private lostTimer = 0;
   private disposed = false;
+  private lost = false;
   private pose: CameraPose = { tx: 0, ty: 0, tz: 0, fitH: 10, fitW: 10, az: Math.PI / 4, el: 0.56 };
   private parallaxX = new Spring(0, 60, 16);
   private parallaxY = new Spring(0, 60, 16);
   private target = new Vector3();
+  private scratch = new Vector3();
   private lightDir = new Vector3(...LIGHT_DIR).normalize();
-  readonly lost: { value: boolean } = { value: false };
 
   constructor(private options: RigOptions) {
     this.canvas = document.createElement('canvas');
@@ -76,7 +142,8 @@ export class Rig {
       canvas: this.canvas,
       antialias: true,
       alpha: true,
-      powerPreference: 'high-performance',
+      // Software rendering is refused: those devices are served the posters instead.
+      failIfMajorPerformanceCaveat: true,
     });
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = NoToneMapping;
@@ -102,11 +169,11 @@ export class Rig {
     this.key.shadow.normalBias = 0.035;
     this.scene.add(ambient, this.key, this.key.target);
 
-    // The page background shows through the canvas; only the shadow is drawn on the ground.
-    const ground = new Mesh(new PlaneGeometry(400, 400), new ShadowMaterial({ color: BRAND.navy, opacity: 0.16 }));
+    // The page's navy shows through the canvas; only the shadow is drawn on the ground.
+    const ground = new Mesh(new PlaneGeometry(400, 400), new ShadowMaterial({ color: BRAND.shadow, opacity: 0.5 }));
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
-    this.scene.add(ground);
+    this.scene.add(ground, createLattice());
 
     this.resizeObserver = new ResizeObserver(() => this.measure());
     this.visibilityObserver = new IntersectionObserver(
@@ -119,12 +186,17 @@ export class Rig {
 
     this.canvas.addEventListener('webglcontextlost', (event) => {
       event.preventDefault();
-      this.lost.value = true;
+      this.lost = true;
       cancelAnimationFrame(this.raf);
       this.raf = 0;
+      // If the browser does not hand the context back shortly, the caller falls back.
+      this.lostTimer = window.setTimeout(() => {
+        if (this.lost) for (const callback of this.lostCallbacks) callback();
+      }, 2500);
     });
     this.canvas.addEventListener('webglcontextrestored', () => {
-      this.lost.value = false;
+      this.lost = false;
+      window.clearTimeout(this.lostTimer);
       this.invalidate();
     });
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -136,15 +208,20 @@ export class Rig {
   };
 
   private onPointer = (event: PointerEvent) => {
-    if (this.options.reducedMotion || event.pointerType === 'touch' || !this.slot) return;
+    if (this.options.reducedMotion || event.pointerType === 'touch' || !this.slot || !this.visible) return;
     this.parallaxX.target = (event.clientX / window.innerWidth - 0.5) * 2;
     this.parallaxY.target = (event.clientY / window.innerHeight - 0.5) * 2;
     this.invalidate();
   };
 
-  private applyPixelRatio() {
+  /** Applies the capped device pixel ratio. Returns true when it changed. */
+  private applyPixelRatio(): boolean {
     const cap = this.options.lowPower ? 1.5 : 2;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+    const ratio = Math.min(window.devicePixelRatio || 1, cap);
+    if (ratio === this.ratio) return false;
+    this.ratio = ratio;
+    this.renderer.setPixelRatio(ratio);
+    return true;
   }
 
   /** Move the canvas into a slot element and size it to that element. */
@@ -165,11 +242,18 @@ export class Rig {
     if (!this.slot) return;
     const w = Math.max(1, Math.round(this.slot.clientWidth));
     const h = Math.max(1, Math.round(this.slot.clientHeight));
-    if (w === this.width && h === this.height) return;
+    const ratioChanged = this.applyPixelRatio();
+    if (w === this.width && h === this.height && !ratioChanged) return;
     this.width = w;
     this.height = h;
-    this.applyPixelRatio();
     this.renderer.setSize(w, h, false);
+    for (const callback of this.resizeCallbacks) callback();
+    // Resizing clears the drawing buffer. Draw again at once so the stage never
+    // shows an empty frame while a window edge is being dragged.
+    if (this.started && !this.lost) {
+      this.applyCamera();
+      this.renderer.render(this.scene, this.camera);
+    }
     this.invalidate();
   }
 
@@ -187,32 +271,46 @@ export class Rig {
     this.callbacks.push(callback);
   }
 
+  /** Called whenever the slot changes size, before the next frame. */
+  onResize(callback: () => void) {
+    this.resizeCallbacks.push(callback);
+  }
+
+  /** Called if the graphics context is lost and not restored. */
+  onLost(callback: () => void) {
+    this.lostCallbacks.push(callback);
+  }
+
+  /** Nothing is drawn until start() is called, so shaders can be compiled first. */
+  start() {
+    this.started = true;
+    this.invalidate();
+  }
+
   invalidate() {
     this.dirty = true;
-    if (!this.raf && !this.disposed && !this.lost.value) {
-      this.last = performance.now();
-      this.raf = requestAnimationFrame(this.loop);
-    }
+    if (!this.started || this.raf || this.disposed || this.lost) return;
+    this.last = performance.now();
+    this.raf = requestAnimationFrame(this.loop);
   }
 
   private loop = (now: number) => {
     this.raf = 0;
-    if (this.disposed || this.lost.value) return;
+    if (this.disposed || this.lost) return;
     const dt = Math.min(0.05, Math.max(0.001, (now - this.last) / 1000));
     this.last = now;
 
-    if (!this.visible || document.hidden) {
-      // Nothing on screen: stop until the slot becomes visible again.
-      return;
-    }
+    // Nothing on screen: stop until the slot becomes visible again.
+    if (!this.visible || document.hidden) return;
 
     this.dirty = false;
     let active = false;
-    for (const callback of this.callbacks) if (callback(dt, now / 1000)) active = true;
     if (this.parallaxX.step(dt)) active = true;
     if (this.parallaxY.step(dt)) active = true;
-
+    // The camera is settled first, so call-outs placed by the callbacks are projected
+    // with the same view the frame is drawn with.
     this.applyCamera();
+    for (const callback of this.callbacks) if (callback(dt, now / 1000)) active = true;
     this.renderer.render(this.scene, this.camera);
 
     // A callback may have called invalidate() and already queued the next frame.
@@ -239,6 +337,7 @@ export class Rig {
     this.camera.left = (-viewH * aspect) / 2;
     this.camera.right = (viewH * aspect) / 2;
     this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld();
 
     // Keep the shadow frustum centred on what the camera is looking at.
     this.key.target.position.set(pose.tx, 0, pose.tz);
@@ -247,7 +346,7 @@ export class Rig {
 
   /** Project a world point to CSS pixels inside the slot. */
   project(point: Vector3, out: { x: number; y: number }) {
-    const v = point.clone().project(this.camera);
+    const v = this.scratch.copy(point).project(this.camera);
     out.x = (v.x * 0.5 + 0.5) * this.width;
     out.y = (-v.y * 0.5 + 0.5) * this.height;
     return out;
@@ -256,6 +355,7 @@ export class Rig {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    window.clearTimeout(this.lostTimer);
     this.resizeObserver.disconnect();
     this.visibilityObserver.disconnect();
     document.removeEventListener('visibilitychange', this.onVisibility);

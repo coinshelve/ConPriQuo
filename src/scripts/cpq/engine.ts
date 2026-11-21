@@ -112,7 +112,8 @@ const PRICE = {
 /** Every part the HX-6 can resolve to, in bill-of-materials order. */
 export const CATALOG: readonly { part: string; description: string; unitPrice: number }[] = [
   { part: 'HX6-BASE', description: 'HX-6 base unit with 9 m arm', unitPrice: PRICE.base },
-  { part: 'HX6-ARM-14', description: 'Long reach arm, 14 m', unitPrice: PRICE.longReach },
+  // An extension, not a second arm: the base unit already carries the 9 m arm.
+  { part: 'HX6-ARM-14', description: 'Arm extension, 9 m to 14 m', unitPrice: PRICE.longReach },
   { part: 'HX6-BAL-01', description: 'Additional ballast block', unitPrice: PRICE.ballast },
   { part: 'HX6-TL-GRP', description: 'Two-jaw gripper', unitPrice: PRICE.gripper },
   { part: 'HX6-TL-VAC', description: 'Vacuum lifter', unitPrice: PRICE.vacuum },
@@ -266,7 +267,7 @@ export function evaluate(input: Selection): Evaluation {
     rules.push({
       id: 'A-03',
       kind: 'approval',
-      text: `A ${discount}% discount is above seller authority. Routed to ${needed.join(', then ')}.`,
+      text: `A ${discount}% discount is above seller authority. Needs approval from ${needed.join(' and ')}.`,
     });
   }
 

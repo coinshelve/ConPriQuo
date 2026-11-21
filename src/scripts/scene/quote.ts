@@ -20,12 +20,12 @@ const ROW_STEP = 0.56;
 const SHEET_Y = 0.07;
 
 const PART_MATERIAL: Record<string, keyof Materials> = {
-  'HX6-BASE': 'navy',
+  'HX6-BASE': 'ink',
   'HX6-ARM-14': 'magenta',
-  'HX6-BAL-01': 'navy',
+  'HX6-BAL-01': 'ink',
   'HX6-TL-GRP': 'cyan',
   'HX6-TL-VAC': 'orange',
-  'HX6-TL-HOK': 'navy',
+  'HX6-TL-HOK': 'ink',
   'HX6-PMP-KIT': 'orange',
   'HX6-PWR-E': 'cyan',
 };
@@ -48,8 +48,19 @@ interface Packet {
   node: Mesh;
   /** 0 for the CRM track, 1 for the ERP track. */
   track: 0 | 1;
+  /**
+   * Position along the track, 0 to 1, when the clock reads zero. Every offset lies
+   * mid-track, so the records are in view whenever the packets stand still.
+   */
   offset: number;
 }
+
+/** Fraction of its track a packet covers per second. */
+const CRM_SPEED = 0.16;
+const ERP_SPEED = 0.22;
+/** Where the single CRM record starts, and the stretch of track on which it is in full view. */
+const CRM_OFFSET = 0.5;
+const CRM_IN_VIEW: [number, number] = [0.16, 0.76];
 
 export class Quote {
   readonly root = new Group();
@@ -68,6 +79,10 @@ export class Quote {
   private evaluation: Evaluation | null = null;
   private anchors = new Map<string, Object3D>();
   private clock = 0;
+  /** 0 when the packets stand still, 1 at full speed. */
+  private flow = 0;
+  /** Set once the packets have begun slowing down, so they finish stopping where they are. */
+  private stopping = false;
 
   constructor(materials: Materials) {
     const m = materials;
@@ -84,7 +99,7 @@ export class Quote {
       s.position.set(x, SHEET_Y + 0.012, z);
       return s;
     };
-    this.sheet.add(strip(1.5, 1.45, -2.95, m.navy, 0.2));
+    this.sheet.add(strip(1.5, 1.45, -2.95, m.ink, 0.2));
     this.sheet.add(strip(1.0, 1.7, -2.6, m.bone));
     this.sheet.add(strip(0.8, 1.8, -2.32, m.bone));
     // the magenta tab at the head of the sheet, as on the HTML document
@@ -95,9 +110,9 @@ export class Quote {
       const node = new Group();
       const chip = mesh(new RoundedBoxGeometry(0.26, 0.05, 0.26, 2, 0.02), m[PART_MATERIAL[item.part]], false);
       chip.position.set(-2.1, 0.02, 0);
-      const text = mesh(new RoundedBoxGeometry(2.3, 0.035, 0.13, 1, 0.012), m.navy, false);
+      const text = mesh(new RoundedBoxGeometry(2.3, 0.035, 0.13, 1, 0.012), m.ink, false);
       text.position.set(-0.6, 0.012, 0);
-      const amount = mesh(new RoundedBoxGeometry(0.2 + (item.unitPrice / 186000) * 0.9, 0.035, 0.13, 1, 0.012), m.navy, false);
+      const amount = mesh(new RoundedBoxGeometry(0.2 + (item.unitPrice / 186000) * 0.9, 0.035, 0.13, 1, 0.012), m.ink, false);
       amount.geometry.translate(-(0.2 + (item.unitPrice / 186000) * 0.9) / 2, 0, 0);
       amount.position.set(2.2, 0.012, 0);
       node.add(chip, text, amount);
@@ -113,11 +128,11 @@ export class Quote {
     this.totalBar.position.set(1.35, SHEET_Y + 0.11, 2.85);
     this.sheet.add(this.totalBar);
 
-    // approval stamp: cyan when within authority, orange while awaiting sign-off
+    // approval stamp: cyan when within authority, orange while awaiting approval
     const stampGeometry = new CylinderGeometry(0.42, 0.42, 0.09, 48);
     this.stampCyan = mesh(stampGeometry, m.cyan);
     this.stampOrange = mesh(stampGeometry, m.orange);
-    const ring = mesh(new TorusGeometry(0.42, 0.035, 10, 48), m.navy, false);
+    const ring = mesh(new TorusGeometry(0.42, 0.035, 10, 48), m.ink, false);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 0.05;
     const stamp = new Group();
@@ -132,8 +147,8 @@ export class Quote {
     const deckGeometry = new CylinderGeometry(1.02, 1.02, 0.1, 6);
     const makeSystem = (z: number) => {
       const system = new Group();
-      system.add(mesh(hex, m.navy));
-      const deck = mesh(deckGeometry, m.bone, false);
+      system.add(mesh(hex, m.frame));
+      const deck = mesh(deckGeometry, m.deck, false);
       deck.position.y = 0.05;
       deck.rotation.y = Math.PI / 6;
       system.add(deck);
@@ -160,8 +175,8 @@ export class Quote {
       this.systems.add(node);
       this.packets.push({ node, track, offset });
     };
-    addPacket(0, 0);
-    for (let i = 0; i < 4; i++) addPacket(1, i / 4);
+    addPacket(0, CRM_OFFSET);
+    for (let i = 0; i < 4; i++) addPacket(1, (i + 0.5) / 4);
 
     const anchor = (name: string, parent: Object3D, x: number, y: number, z: number) => {
       const node = new Object3D();
@@ -213,6 +228,10 @@ export class Quote {
     this.update(0, true, false);
   }
 
+  /**
+   * `animate` says whether the packets may travel right now. When it turns false they
+   * ease to a stop rather than freezing, and with snap they do not move at all.
+   */
   update(dt: number, snap = false, animate = true): boolean {
     let active = false;
     const step = (spring: Spring) => {
@@ -268,12 +287,23 @@ export class Quote {
     if (this.systems.visible) {
       this.systems.scale.setScalar(0.7 + handoff * 0.3);
       this.systems.position.y = (handoff - 1) * 0.4;
-      if (animate && !snap) {
-        this.clock += dt;
-        active = true;
+      if (!snap) {
+        // CRM receives a single record. If that packet is at the fading end of its track
+        // when asked to stop, it runs on until it is in view, so the track never rests empty.
+        const crm = (this.clock * CRM_SPEED + CRM_OFFSET) % 1;
+        const inView = crm > CRM_IN_VIEW[0] && crm < CRM_IN_VIEW[1];
+        if (animate) this.stopping = false;
+        else if (this.flow === 0 || inView) this.stopping = true;
+        const wanted = this.stopping ? 0 : 1;
+        this.flow += (wanted - this.flow) * Math.min(1, dt * 4);
+        if (wanted === 0 && this.flow < 0.01) this.flow = 0;
+        if (this.flow > 0) {
+          this.clock += dt * this.flow;
+          active = true;
+        }
       }
       for (const packet of this.packets) {
-        const speed = packet.track === 0 ? 0.16 : 0.22;
+        const speed = packet.track === 0 ? CRM_SPEED : ERP_SPEED;
         const t = (this.clock * speed + packet.offset) % 1;
         const z = packet.track === 0 ? -2.5 : 2.5;
         // leave the sheet edge, travel the track, and sink into the system's deck

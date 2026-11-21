@@ -1,9 +1,11 @@
 import { initChrome } from './chrome';
+import { initEnquiry } from './enquiry';
 import { initReveals } from './reveal';
 import { initWorkbench } from './workbench';
 
 initChrome();
 initReveals();
+initEnquiry();
 (window as unknown as { __cpqReady: boolean }).__cpqReady = true;
 const workbench = initWorkbench();
 
@@ -14,7 +16,7 @@ const showPosters = () => import('./fallback').then(({ initFallback }) => initFa
 
 const startStage = () => {
   import('./stage')
-    .then(({ initStage }) => initStage(workbench))
+    .then(({ initStage }) => initStage(workbench, showPosters))
     .then((started) => {
       if (!started) return showPosters();
     })
@@ -25,7 +27,7 @@ const startStage = () => {
 };
 
 if ('requestIdleCallback' in window) {
-  window.requestIdleCallback(startStage, { timeout: 1800 });
+  window.requestIdleCallback(startStage, { timeout: 900 });
 } else {
   setTimeout(startStage, 600);
 }

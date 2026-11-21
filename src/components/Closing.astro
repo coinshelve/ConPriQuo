@@ -1,0 +1,62 @@
+---
+/**
+ * The last word: the two ways to work with ConPriQuo, each opening the enquiry
+ * dialog. The direct lines are in the footer immediately below.
+ */
+import { company } from '../data/site';
+
+const mail = `mailto:${company.email}`;
+---
+
+<section class="closing" id="contact" aria-labelledby="closing-title">
+  <div class="wrap closing__grid">
+    <div class="closing__lede">
+      <h2 class="chapter" id="closing-title">
+        <span class="tag"><span>Contact<span class="visually-hidden">: </span></span></span>
+        <span class="closing__title" data-lines>Bring us a project or an open role.</span>
+      </h2>
+      <div class="closing__cta" data-reveal>
+        <a class="btn btn--accent" href={mail} data-enquiry>Discuss a project</a>
+        <a
+          class="btn btn--line"
+          href={mail}
+          data-enquiry
+          data-enquiry-service="Contract specialists for Oracle CPQ, Oracle CX or Salesforce"
+        >
+          Request specialists
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .closing {
+    background: var(--ground);
+    padding-block: var(--section);
+  }
+
+
+  .closing__lede {
+    display: grid;
+    gap: clamp(1.25rem, 3vh, 2rem);
+  }
+
+  .closing__title {
+    display: block;
+    font-size: clamp(2.2rem, 1.1rem + 4.6vw, 5rem);
+    font-weight: 640;
+    font-stretch: 112%;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+    text-wrap: balance;
+  }
+
+  .closing__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+</style>

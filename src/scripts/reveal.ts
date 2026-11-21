@@ -62,11 +62,24 @@ function splitIntoLines(el: HTMLElement): (() => void) | null {
 export function initReveals() {
   const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal], [data-lines]'));
   if (!targets.length) return;
-
-  if (reducedMotion.matches || !('IntersectionObserver' in window)) {
+  const revealAll = () => {
     for (const el of targets) el.classList.add('is-in');
+  };
+
+  // The inline safety timer in the layout has already shown everything because this
+  // script arrived late. Observing now would hide content the visitor is reading.
+  if (document.documentElement.classList.contains('reveal-fallback')) {
+    revealAll();
     return;
   }
+
+  if (reducedMotion.matches || !('IntersectionObserver' in window)) {
+    revealAll();
+    return;
+  }
+
+  // Printing lays out the whole page at once; nothing may wait for a scroll position.
+  window.addEventListener('beforeprint', revealAll);
 
   const fontsReady = Promise.race([
     document.fonts ? document.fonts.ready : Promise.resolve(),
@@ -81,6 +94,8 @@ export function initReveals() {
         observer.unobserve(el);
         if (el.hasAttribute('data-lines')) {
           fontsReady.then(() => {
+            // Already shown in full (for example by a print), so there is nothing to stage.
+            if (el.classList.contains('is-in')) return;
             const restore = splitIntoLines(el);
             // Two frames so the starting transform is committed before the class flips.
             requestAnimationFrame(() =>

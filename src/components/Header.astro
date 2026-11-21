@@ -4,7 +4,7 @@ import logo from '../assets/brand/conpriquo-solutions-logo.png';
 import { chapters, company, plannedPages } from '../data/site';
 ---
 
-<header class="site-header" data-header>
+<header class="site-header theme-light" data-header>
   <div class="site-header__inner wrap">
     <a class="site-header__logo" href="#top" aria-label="ConPriQuo Solutions, back to top">
       <Image
@@ -18,13 +18,17 @@ import { chapters, company, plannedPages } from '../data/site';
       />
     </a>
 
-    <!-- Planned pages. Only the homepage exists in this phase, so these are text, not links. -->
-    <ul class="site-header__pages" aria-label="Site pages, in preparation">
-      {plannedPages.primary.map((name) => <li>{name}</li>)}
-    </ul>
+    <!-- Planned pages. Only the homepage exists in this phase, so these are text, not
+         links, and the header says so. -->
+    <div class="site-header__pages" role="group" aria-labelledby="pages-soon">
+      <p class="site-header__soon" id="pages-soon">Coming soon</p>
+      <ul>
+        {plannedPages.primary.map((name) => <li>{name}</li>)}
+      </ul>
+    </div>
 
     <div class="site-header__actions">
-      <a class="btn btn--small" href="#brief">Start a brief</a>
+      <a class="btn btn--small" href={`mailto:${company.email}`} data-enquiry>Talk to us</a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
         <span class="menu-toggle__bars" aria-hidden="true"><i></i><i></i></span>
         <span class="visually-hidden">Menu</span>
@@ -60,7 +64,7 @@ import { chapters, company, plannedPages } from '../data/site';
     position: sticky;
     top: 0;
     z-index: 40;
-    background: var(--paper);
+    background: var(--white);
     transition: box-shadow var(--t-med) linear;
   }
 
@@ -87,16 +91,51 @@ import { chapters, company, plannedPages } from '../data/site';
     height: auto;
   }
 
+  /* Not navigation yet: set quieter than a link, with no pointer and a stated reason. */
   .site-header__pages {
     display: flex;
-    gap: clamp(1rem, 2.1vw, 2.2rem);
+    align-items: center;
+    gap: clamp(0.8rem, 1.5vw, 1.4rem);
     margin-left: auto;
+    cursor: default;
+  }
+
+  .site-header__pages ul {
+    display: flex;
+    gap: clamp(1rem, 2.1vw, 2.2rem);
     font-size: 0.98rem;
     font-weight: 500;
     font-stretch: 102%;
-    color: var(--ink-2);
+    color: var(--ink-3);
     white-space: nowrap;
-    cursor: default;
+  }
+
+  .site-header__soon {
+    padding: 0.22rem 0.5rem 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-stretch: 96%;
+    letter-spacing: 0.09em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--ink-3);
+    box-shadow: inset 0 0 0 1px var(--hair-strong);
+    border-radius: 2px;
+  }
+
+  /* Where the row is too tight for the tag it stays in the accessibility tree only. */
+  @media (max-width: 78rem) {
+    .site-header__soon {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      box-shadow: none;
+    }
   }
 
   .site-header__actions {
@@ -124,7 +163,7 @@ import { chapters, company, plannedPages } from '../data/site';
     display: block;
     height: 0.2rem;
     border-radius: 0.2rem;
-    background: var(--navy);
+    background: var(--ink);
     transition:
       transform var(--t-med) var(--ease-out),
       width var(--t-med) var(--ease-out),
@@ -150,7 +189,7 @@ import { chapters, company, plannedPages } from '../data/site';
     inset: 100% 0 auto 0;
     max-height: calc(100dvh - var(--header-h));
     overflow-y: auto;
-    background: var(--paper);
+    background: var(--white);
     box-shadow:
       0 1px 0 var(--hair),
       0 1.5rem 2.5rem -1.5rem rgb(17 18 60 / 0.28);
@@ -180,6 +219,10 @@ import { chapters, company, plannedPages } from '../data/site';
     font-stretch: 108%;
     letter-spacing: -0.015em;
     text-decoration: none;
+  }
+
+  .site-menu__chapters :global(a[aria-current]) {
+    box-shadow: inset 0 -0.5rem 0 -0.24rem var(--magenta);
   }
 
   .site-menu__pages {

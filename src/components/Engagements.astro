@@ -3,57 +3,37 @@
  * Published Oracle CPQ engagements. Everything here restates what ConPriQuo has
  * already published about this work. No metrics, quotations or logos are added.
  */
+import { company } from '../data/site';
+
 const engagements = [
   {
     client: 'Terex ProAll',
     kind: 'Oracle CPQ global rollout',
-    summary:
-      'A global Oracle CPQ rollout for the ProAll brand: automated pricing, system integrations and quoting workflows for sales teams.',
+    summary: 'Automated pricing, system integrations and quoting workflows for sales teams.',
   },
   {
     client: 'Terex Fuchs',
     kind: 'Oracle CPQ implementation',
-    summary:
-      'An Oracle CPQ implementation for the Fuchs division: configured product rules, dynamic pricing and streamlined quote management.',
+    summary: 'Configured product rules, dynamic pricing and streamlined quote management.',
   },
 ];
 
-/** Each kind of work points back to the chapter above where the visitor operated it. */
+/** The kinds of work involved, each one operated by the visitor in the example above. */
 const work = [
-  {
-    term: 'Configuration',
-    detail: 'Advanced product configuration using attribute-driven bill of materials structures.',
-    chapter: 'configure',
-    label: 'Configure',
-  },
-  {
-    term: 'Rules',
-    detail: 'Business rules and constraint logic that keep every configuration valid as the seller builds it.',
-    chapter: 'configure',
-    label: 'Configure',
-  },
-  {
-    term: 'Pricing',
-    detail:
-      'Integration with the Oracle CPQ Pricing Portal for central control of pricing strategy, dynamic discounting and pricing governance.',
-    chapter: 'price',
-    label: 'Price',
-  },
-  {
-    term: 'Commerce process',
-    detail:
-      'A customized commerce process: guided selling, dynamic quotation workflows, transaction automation and multi-level approval hierarchies.',
-    chapter: 'quote',
-    label: 'Quote',
-  },
+  { term: 'Configuration', detail: 'Attribute-driven bill of materials structures.' },
+  { term: 'Rules', detail: 'Constraint logic that keeps every configuration valid.' },
+  { term: 'Pricing', detail: 'The Oracle CPQ Pricing Portal for discounting and pricing governance.' },
+  { term: 'Commerce process', detail: 'Guided selling, quotation workflows and multi-level approvals.' },
 ];
 ---
 
-<section class="engagements on-navy" id="engagements" aria-labelledby="engagements-title">
+<section class="engagements" id="engagements" aria-labelledby="engagements-title">
   <div class="wrap">
     <div class="engagements__head">
-      <p class="tag tag--on-navy"><span>Engagements</span></p>
-      <h2 class="h2" id="engagements-title" data-lines>Two Oracle CPQ programmes we can name.</h2>
+      <h2 class="chapter" id="engagements-title">
+        <span class="tag"><span>Engagements<span class="visually-hidden">: </span></span></span>
+        <span class="h2" data-lines>Two Oracle CPQ programs, on the record.</span>
+      </h2>
     </div>
 
     <div class="engagements__grid">
@@ -76,20 +56,21 @@ const work = [
             work.map((item) => (
               <div>
                 <dt>{item.term}</dt>
-                <dd>
-                  {item.detail}
-                  <a class="built__see" href={`#${item.chapter}`}>
-                    The same kind of logic, to operate: {item.label}
-                  </a>
-                </dd>
+                <dd>{item.detail}</dd>
               </div>
             ))
           }
         </dl>
-        <p class="built__note">
-          We do not publish figures we could not show you the source for. Ask about either programme and we will
-          walk you through what was built, how it was integrated and what it took to roll out.
-        </p>
+        <p class="built__note">We will walk you through what was built.</p>
+        <a
+          class="intent"
+          href={`mailto:${company.email}`}
+          data-enquiry
+          data-enquiry-service="Oracle CPQ implementation"
+          data-enquiry-note="We would like to hear about your Oracle CPQ work for Terex ProAll and Terex Fuchs."
+        >
+          Ask about either program
+        </a>
       </div>
     </div>
   </div>
@@ -97,8 +78,7 @@ const work = [
 
 <style>
   .engagements {
-    background: var(--navy);
-    color: var(--on-navy);
+    background: var(--ground-2);
     padding-block: var(--section);
   }
 
@@ -142,7 +122,7 @@ const work = [
     font-size: 0.7rem;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: var(--on-navy-2);
+    color: var(--ink-2);
   }
 
   .record__client {
@@ -157,18 +137,18 @@ const work = [
     max-width: 30em;
     font-size: var(--step-lead);
     line-height: 1.45;
-    color: var(--on-navy-2);
+    color: var(--ink-2);
     text-wrap: pretty;
   }
 
   .built__label {
-    color: var(--on-navy-2);
+    color: var(--ink-2);
     padding-bottom: 0.8rem;
   }
 
   .built__list {
     display: grid;
-    border-top: 2px solid var(--on-navy);
+    border-top: 2px solid var(--ink);
   }
 
   .built__list > div {
@@ -176,7 +156,7 @@ const work = [
     grid-template-columns: 8.5rem minmax(0, 1fr);
     gap: 0.25rem 1.25rem;
     padding: 0.95rem 0 1.05rem;
-    border-top: 1px solid var(--hair-on-navy);
+    border-top: 1px solid var(--hair);
   }
 
   .built__list > div:first-child {
@@ -191,33 +171,14 @@ const work = [
   .built__list dd {
     font-size: var(--step-small);
     line-height: 1.5;
-    color: var(--on-navy-2);
+    color: var(--ink-2);
     text-wrap: pretty;
-  }
-
-  .built__see {
-    display: block;
-    width: fit-content;
-    margin-top: 0.45rem;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    font-stretch: 94%;
-    letter-spacing: 0.04em;
-    color: var(--on-navy);
-    text-decoration-color: var(--magenta);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.35em;
-  }
-
-  .built__see:hover {
-    text-decoration-color: var(--on-navy);
   }
 
   .built__note {
     margin-top: 1.6rem;
-    font-size: var(--step-small);
-    line-height: 1.55;
-    color: var(--on-navy-2);
+    margin-bottom: 0.4rem;
+    color: var(--ink-2);
     max-width: 34em;
   }
 
