@@ -27,3 +27,6 @@ pnpm-debug.log*
 .claude/
 shots/
 *.log
+
+# upload packages built for a host (see README, The production domain)
+deploy/

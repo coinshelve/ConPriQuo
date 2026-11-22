@@ -22,18 +22,6 @@ import type { Family } from './scene/team';
 import { Unit } from './scene/unit';
 import type { Workbench } from './workbench';
 
-/**
- * True only where WebGL 2 runs on real graphics hardware. A software renderer would
- * draw the scene too slowly to scroll against, so those devices get the posters.
- */
-function webglAvailable(): boolean {
-  try {
-    const canvas = document.createElement('canvas');
-    return Boolean(canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: true }));
-  } catch {
-    return false;
-  }
-}
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
@@ -172,7 +160,10 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
   const teamLabelHost = document.querySelector<HTMLElement>('[data-team-labels]');
   const teamCaption = document.querySelector<HTMLElement>('[data-team-caption]');
 
-  if (!story || !unitSlot || !webglAvailable()) return false;
+  // Whether the device can draw 3D at all is settled by the caller before this
+  // module is even requested (see main.ts); the renderer below still refuses a
+  // software context, and that failure is caught.
+  if (!story || !unitSlot) return false;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
@@ -252,7 +243,8 @@ export async function initStage(workbench: Workbench, onLost?: () => void): Prom
   }
   const quoteLabels = unitLabels && {
     total: unitLabels.add({ dx: 40, dy: 34 }),
-    stamp: unitLabels.add({ dx: 36, dy: 46, compact: { dx: -10, dy: 36 } }),
+    // To the left of the stamp, off the sheet, so it never covers the total bar.
+    stamp: unitLabels.add({ dx: -34, dy: 30, compact: { dx: -10, dy: 36 } }),
   };
   const flowLabels = unitLabels && {
     crm: unitLabels.add({ dx: 30, dy: -50, compact: { dx: 16, dy: -30 } }),

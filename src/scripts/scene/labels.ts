@@ -30,6 +30,11 @@ export interface Label {
 
 /** Below this stage width the compact layout applies. */
 const COMPACT_BELOW = 520;
+/**
+ * Below this width the stage is a stacked one, wide but short (a tablet held upright).
+ * Descriptive labels drop their second line there, so they stay off the objects.
+ */
+const BRIEF_BELOW = 900;
 /** Minimum distance between a label and the stage edge. */
 const EDGE = 6;
 const EDGE_COMPACT = 12;
@@ -54,6 +59,7 @@ export class LabelLayer {
   private labels: Label[] = [];
   private screen = { x: 0, y: 0 };
   private compact = false;
+  private brief = false;
   /** Boxes taken so far this frame: left, top, right, bottom for each label placed. */
   private taken: number[] = [];
 
@@ -112,9 +118,12 @@ export class LabelLayer {
     this.svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     this.taken.length = 0;
     const compact = width < COMPACT_BELOW;
-    if (compact !== this.compact) {
+    const brief = width < BRIEF_BELOW;
+    if (compact !== this.compact || brief !== this.brief) {
       this.compact = compact;
+      this.brief = brief;
       this.container.classList.toggle('is-compact', compact);
+      this.container.classList.toggle('is-brief', brief);
       for (const label of this.labels) label.stale = true;
     }
   }

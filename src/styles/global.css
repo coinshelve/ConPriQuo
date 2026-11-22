@@ -617,7 +617,8 @@ button {
 }
 
 /* On a narrow stage, descriptive labels keep their key and drop the second line. */
-.is-compact .stage-label--brief .stage-label__v {
+.is-compact .stage-label--brief .stage-label__v,
+.is-brief .stage-label--brief .stage-label__v {
   display: none;
 }
 

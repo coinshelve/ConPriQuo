@@ -71,6 +71,9 @@ const mail = `mailto:${company.email}`;
       </p>
 
       <div class="demo" data-nosnippet>
+      <noscript>
+        <p class="demo__note">This example responds to your choices when JavaScript is on. Without it, the figures below show one configuration.</p>
+      </noscript>
       <p class="demo__note" data-reveal>
         The HX-6 is invented for this page. We don’t sell machines. We build the systems that quote them.
       </p>
@@ -1093,6 +1096,11 @@ return 1;`}</code></pre>
     grid-template-columns: auto minmax(0, 1fr);
     gap: 1.5rem clamp(1.5rem, 4vw, 3rem);
     align-items: start;
+  }
+
+  /* The quantity and discount controls only work with scripting. */
+  :global(html:not(.js)) .levers {
+    display: none;
   }
 
   .lever {

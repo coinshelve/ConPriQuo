@@ -203,8 +203,9 @@ Git Bash on Windows rewrites a value that starts with a slash into a drive path;
 with an explanation if that happens, so leave the leading slash off there.
 
 A build for any address other than the production one is a preview: it is marked
-`noindex, nofollow`, and its canonical URL and structured data still name the production site, so
-it cannot compete with the real site in search.
+`noindex, nofollow`, its canonical URL and structured data still name the production site, it has
+no sitemap and its `robots.txt` asks crawlers to stay out, so it cannot compete with the real site
+in search.
 
 Enquiries are handed to the visitor's email app unless `PUBLIC_FORM_ENDPOINT` is set for the build
 (see "The enquiry dialog").

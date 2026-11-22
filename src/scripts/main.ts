@@ -14,7 +14,29 @@ const workbench = initWorkbench();
 // same scenes instead.
 const showPosters = () => import('./fallback').then(({ initFallback }) => initFallback());
 
+/**
+ * True only where WebGL 2 runs on real graphics hardware. A software renderer would
+ * draw the scene too slowly to scroll against. The question is asked here, before the
+ * 3D code is requested, so a device that cannot draw it never downloads it.
+ */
+function canDraw3d(): boolean {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true });
+    if (!gl) return false;
+    // The probe's context is handed back at once; the stage creates its own.
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const startStage = () => {
+  if (!document.querySelector('[data-stage-slot]')) return;
+  if (!canDraw3d()) {
+    void showPosters();
+    return;
+  }
   import('./stage')
     .then(({ initStage }) => initStage(workbench, showPosters))
     .then((started) => {

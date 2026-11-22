@@ -88,7 +88,7 @@ function asLines(values: Enquiry, requirement = values.requirement): string[] {
 function composeMailto(values: Enquiry): { href: string; shortened: boolean } {
   const subject = encodeURIComponent(`Website inquiry: ${values.service}`);
   const build = (requirement: string) =>
-    `mailto:${company.email}?subject=${subject}&body=${encodeURIComponent(asLines(values, requirement).join('\r\n'))}`;
+    `mailto:${company.email}?subject=${subject}&body=${encodeURIComponent(asLines(values, requirement).join('\r\n').replace(/\r?\n/g, '\r\n'))}`;
   let href = build(values.requirement);
   if (href.length <= MAILTO_LIMIT) return { href, shortened: false };
   const characters = Array.from(values.requirement);

@@ -61,9 +61,15 @@ try {
           const el = document.querySelector(selector);
           if (!el) return null;
           const header = document.querySelector('[data-header]')?.getBoundingClientRect().height ?? 0;
-          const stage = document.querySelector('.story__stage');
-          // on small screens the sticky stage also covers the top of the viewport
-          const sticky = window.matchMedia('(min-width: 64rem)').matches ? 0 : stage && el.closest('[data-story]') ? stage.getBoundingClientRect().height : 0;
+          // on small screens a pinned stage also covers the top of the viewport: the
+          // story's in the worked example, the shortlist's in the staffing section
+          const stacked = !window.matchMedia('(min-width: 64rem)').matches;
+          const pinned = el.closest('[data-story]')
+            ? document.querySelector('.story__stage')
+            : el.closest('.shortlist')
+              ? document.querySelector('.shortlist__stage')
+              : null;
+          const sticky = stacked && pinned ? pinned.getBoundingClientRect().height : 0;
           return Math.max(0, el.getBoundingClientRect().top + window.scrollY - header - sticky - offset);
         },
         stop.selector,

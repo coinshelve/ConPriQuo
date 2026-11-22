@@ -1,0 +1,84 @@
+---
+/**
+ * The page a visitor gets for an address that does not exist. It carries the logo, one
+ * line and the way back, and nothing that needs scripting. Hosts that serve a 404.html
+ * file (GitHub Pages does) use it automatically.
+ */
+import { Image } from 'astro:assets';
+import logo from '../assets/brand/conpriquo-solutions-logo.png';
+import Base from '../layouts/Base.astro';
+import { company } from '../data/site';
+
+const home = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/`;
+---
+
+<Base title="Page not found | ConPriQuo" description="This page does not exist on the ConPriQuo Solutions website." path="/404" noindex>
+  <header class="lost-header theme-light">
+    <div class="wrap">
+      <a class="lost-header__logo" href={home} aria-label="ConPriQuo Solutions, homepage">
+        <Image src={logo} alt="ConPriQuo Solutions" widths={[176, 352]} sizes="176px" loading="eager" format="png" />
+      </a>
+    </div>
+  </header>
+  <main class="lost wrap" id="main">
+    <p class="tag"><span>Page not found</span></p>
+    <h1 class="lost__title">This page is not here.</h1>
+    <p class="lead lost__lead">
+      The address may be mistyped, or the page may not be built yet. The homepage has everything published so far.
+    </p>
+    <div class="lost__actions">
+      <a class="btn btn--accent" href={home}>Go to the homepage</a>
+      <a class="btn btn--line" href={`mailto:${company.email}`}>Email us</a>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .lost-header {
+    background: var(--white);
+  }
+
+  .lost-header .wrap {
+    display: flex;
+    align-items: center;
+    height: var(--header-h);
+  }
+
+  .lost-header__logo {
+    display: block;
+    width: 11rem;
+  }
+
+  .lost-header__logo :global(img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .lost {
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: clamp(1.1rem, 2.6vh, 1.75rem);
+    min-height: calc(100svh - var(--header-h));
+    padding-block: clamp(3rem, 10vh, 7rem);
+  }
+
+  .lost__title {
+    font-size: clamp(2.2rem, 1.1rem + 4.6vw, 5rem);
+    font-weight: 640;
+    font-stretch: 112%;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+  }
+
+  .lost__lead {
+    max-width: 34em;
+  }
+
+  .lost__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+</style>

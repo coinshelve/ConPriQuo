@@ -11,8 +11,11 @@ import sitemap from '@astrojs/sitemap';
  * SITE_BASE may be written "ConPriQuo", "/ConPriQuo" or "/ConPriQuo/". Any build that is
  * not the production origin at "/" is marked noindex by the layout.
  */
-const site = process.env.SITE_URL || 'https://conpriquo-solutions.in';
+const PRODUCTION = 'https://conpriquo-solutions.in';
+const site = process.env.SITE_URL || PRODUCTION;
 const base = normaliseBase(process.env.SITE_BASE);
+/** Only the production origin at the root is a site search engines should list. */
+const isProduction = new URL(site).origin === PRODUCTION && base === '/';
 
 /**
  * Returns the base as "/" or "/segment" with no trailing slash, whichever way it was typed.
@@ -39,12 +42,15 @@ export default defineConfig({
   base,
   trailingSlash: 'ignore',
   compressHTML: true,
-  integrations: [
-    sitemap({
-      // The rendering prototype and any future drafts never reach the sitemap.
-      filter: (page) => !/\/(proto|drafts)\b/.test(page),
-    }),
-  ],
+  // A preview copy on another address is noindex, so it gets no sitemap either.
+  integrations: isProduction
+    ? [
+        sitemap({
+          // The rendering prototype and any future drafts never reach the sitemap.
+          filter: (page) => !/\/(proto|drafts)\b/.test(page),
+        }),
+      ]
+    : [],
   fonts: [
     {
       provider: fontProviders.local(),
