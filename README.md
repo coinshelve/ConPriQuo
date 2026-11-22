@@ -230,10 +230,16 @@ Actions > Variables):
 
 ### Vercel
 
-The repository can also be imported as a Vercel project (framework preset Astro, settings in
-`vercel.json`). Vercel then deploys every push to `main` to production and every other branch
-to its own preview address. No environment variables are required: `astro.config.mjs` reads the
-address from Vercel. A production deployment on the project's `vercel.app` address is a
+`.github/workflows/deploy-vercel.yml` deploys every push to `main` to Vercel through the Vercel
+command line. It needs one repository secret, `VERCEL_TOKEN` (a token created under Vercel >
+Account Settings > Tokens); until that exists it does nothing and says so. The first run creates
+the Vercel project (`conpriquo` unless the `VERCEL_PROJECT` variable says otherwise). This route is
+used because the Vercel account signs in with a different GitHub account than the one that owns
+this repository, so Vercel's own GitHub integration cannot see it. If the two ever match, the
+repository can instead be imported in Vercel directly and this workflow removed.
+
+Vercel builds on its own servers with the settings in `vercel.json` (framework preset Astro). No
+environment variables are required: `astro.config.mjs` reads the address from Vercel. A production deployment on the project's `vercel.app` address is a
 noindex preview; once `conpriquo-solutions.in` is added to the project under Settings > Domains
 and a new deployment is made, the same build becomes the indexable production site with its
 sitemap. `PUBLIC_FORM_ENDPOINT` and `PUBLIC_FORM_ACCESS_KEY` can be set as project environment

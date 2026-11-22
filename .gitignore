@@ -30,3 +30,6 @@ shots/
 
 # upload packages built for a host (see README, The production domain)
 deploy/
+
+# Vercel command line link and build output
+.vercel/

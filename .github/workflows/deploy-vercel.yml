@@ -1,0 +1,74 @@
+# Deploys the site to Vercel on every push to main.
+#
+# The repository is owned by a GitHub account that the Vercel account does not sign in
+# with, so Vercel's own GitHub integration cannot see it. This workflow deploys through
+# the Vercel command line instead, using a token the account owner creates.
+#
+# Setup, once:
+#   1. Vercel > Account Settings > Tokens: create a token for the account's team.
+#   2. GitHub > this repository > Settings > Secrets and variables > Actions:
+#      add it as a repository secret named VERCEL_TOKEN.
+# Until the secret exists the workflow does nothing and says so.
+#
+# Optional repository variables:
+#   VERCEL_PROJECT  project name on Vercel (default: conpriquo). Created on the first run.
+#   VERCEL_SCOPE    team slug, when the token can reach more than one team.
+#
+# Vercel builds the site on its own servers, so the build knows the address it is
+# served from: astro.config.mjs keeps a vercel.app address noindex, and makes the
+# site indexable once conpriquo-solutions.in is attached to the project.
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-deploy
+  cancel-in-progress: true
+
+env:
+  VERCEL_CLI: vercel@65.12.1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT || 'conpriquo' }}
+      VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
+    steps:
+      - name: Waiting for a Vercel token
+        if: env.VERCEL_TOKEN == ''
+        run: echo "::notice title=Vercel::No VERCEL_TOKEN secret yet, so nothing was deployed. See the setup notes at the top of this workflow."
+
+      - uses: actions/checkout@v4
+        if: env.VERCEL_TOKEN != ''
+
+      - uses: actions/setup-node@v4
+        if: env.VERCEL_TOKEN != ''
+        with:
+          node-version: 24
+
+      - name: Link the Vercel project (created on the first run)
+        if: env.VERCEL_TOKEN != ''
+        run: |
+          set -euo pipefail
+          scope=()
+          if [ -n "${VERCEL_SCOPE}" ]; then scope=(--scope "${VERCEL_SCOPE}"); fi
+          npx --yes "${VERCEL_CLI}" link --yes --project "${VERCEL_PROJECT}" --token "${VERCEL_TOKEN}" "${scope[@]}"
+
+      - name: Deploy to production
+        if: env.VERCEL_TOKEN != ''
+        run: |
+          set -euo pipefail
+          scope=()
+          if [ -n "${VERCEL_SCOPE}" ]; then scope=(--scope "${VERCEL_SCOPE}"); fi
+          url=$(npx --yes "${VERCEL_CLI}" deploy --prod --yes --token "${VERCEL_TOKEN}" "${scope[@]}")
+          echo "Deployed: ${url}"
+          echo "::notice title=Vercel::Deployed to ${url}"
+          echo "Deployed to ${url}" >> "${GITHUB_STEP_SUMMARY}"
