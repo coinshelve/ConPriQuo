@@ -10,10 +10,26 @@ import sitemap from '@astrojs/sitemap';
  *
  * SITE_BASE may be written "ConPriQuo", "/ConPriQuo" or "/ConPriQuo/". Any build that is
  * not the production origin at "/" is marked noindex by the layout.
+ *
+ * On Vercel neither variable is needed: the address comes from Vercel itself. A
+ * production deployment uses the project's production domain, so it is a noindex
+ * preview on its vercel.app address and becomes the indexable site by itself once
+ * conpriquo-solutions.in is attached to the project. Every other deployment (a branch
+ * or pull request) is always a preview.
  */
 const PRODUCTION = 'https://conpriquo-solutions.in';
-const site = process.env.SITE_URL || PRODUCTION;
+const site = process.env.SITE_URL || vercelAddress() || PRODUCTION;
 const base = normaliseBase(process.env.SITE_BASE);
+
+/** The address Vercel will serve this build from, or undefined when not building there. */
+function vercelAddress() {
+  if (!process.env.VERCEL) return undefined;
+  const host =
+    process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+      : process.env.VERCEL_URL;
+  return host ? `https://${host}` : undefined;
+}
 /** Only the production origin at the root is a site search engines should list. */
 const isProduction = new URL(site).origin === PRODUCTION && base === '/';
 

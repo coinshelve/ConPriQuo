@@ -75,6 +75,8 @@ jobs:
           cp -R dist/. out/
           # Without this file GitHub Pages would skip the _astro folder.
           touch out/.nojekyll
+          # This branch holds built files only: Vercel, which deploys from main, skips it.
+          printf '{ "git": { "deploymentEnabled": false } }\n' > out/vercel.json
           if [ -n "${CUSTOM_DOMAIN}" ]; then echo "${CUSTOM_DOMAIN}" > out/CNAME; fi
           cd out
           git add -A

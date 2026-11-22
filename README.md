@@ -228,12 +228,24 @@ Actions > Variables):
 | `PUBLIC_FORM_ENDPOINT` | URL that receives enquiries as a JSON `POST`. |
 | `PUBLIC_FORM_ACCESS_KEY` | Public key for form services that ask for one. |
 
+### Vercel
+
+The repository can also be imported as a Vercel project (framework preset Astro, settings in
+`vercel.json`). Vercel then deploys every push to `main` to production and every other branch
+to its own preview address. No environment variables are required: `astro.config.mjs` reads the
+address from Vercel. A production deployment on the project's `vercel.app` address is a
+noindex preview; once `conpriquo-solutions.in` is added to the project under Settings > Domains
+and a new deployment is made, the same build becomes the indexable production site with its
+sitemap. `PUBLIC_FORM_ENDPOINT` and `PUBLIC_FORM_ACCESS_KEY` can be set as project environment
+variables. `vercel.json` gives the fingerprinted files under `/_astro/` a one-year cache.
+
 ### The production domain
 
 `conpriquo-solutions.in` is not served from this repository. As of November 2026 it is a WordPress
-site behind Cloudflare. Putting this homepage on that domain is a hosting decision with two routes:
-point the domain's DNS at GitHub Pages and set `CUSTOM_DOMAIN` (the whole domain is then this
-static site), or upload the contents of `dist/` from a production build to the current host.
+site behind Cloudflare. Putting this homepage on that domain is a hosting decision with three
+routes: add the domain to the Vercel project and point its DNS there, or point the DNS at GitHub
+Pages and set `CUSTOM_DOMAIN` (either way the whole domain is then this static site), or upload
+the contents of `dist/` from a production build to the current host beside WordPress.
 
 ## Content rules
 
