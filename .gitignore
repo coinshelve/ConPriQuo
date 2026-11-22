@@ -33,3 +33,6 @@ deploy/
 
 # Vercel command line link and build output
 .vercel/
+
+# local environment files, which can hold tokens
+.env*

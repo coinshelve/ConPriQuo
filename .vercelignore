@@ -1,0 +1,7 @@
+# Not needed to build the site on Vercel: local screenshots, upload packages and build output.
+shots
+deploy
+dist
+.astro
+.claude
+node_modules
